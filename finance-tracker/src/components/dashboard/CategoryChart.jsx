@@ -22,16 +22,16 @@ function CustomBarTooltip({ active, payload }) {
   if (active && payload && payload[0]) {
     const data = payload[0].payload;
     return (
-      <div className="bg-white p-4 border-2 rounded-lg shadow-lg" style={{ borderColor: data.color }}>
-        <p className="font-semibold text-gray-900 text-sm">{data.name}</p>
-        <p className="text-sm text-gray-700 mt-1">
+      <div className="bg-white p-4 border rounded-lg shadow-xl shadow-slate-200/50" style={{ borderColor: data.color }}>
+        <p className="font-bold text-slate-900 text-sm">{data.name}</p>
+        <p className="text-sm text-slate-700 mt-1">
           Amount: <span className="font-bold text-lg">{formatCurrencyINR(data.amount)}</span>
         </p>
-        <p className="text-sm text-gray-700">
-          Percentage: <span className="font-bold">{data.percentage.toFixed(1)}%</span>
+        <p className="text-sm text-slate-600">
+          Percentage: <span className="font-semibold">{data.percentage.toFixed(1)}%</span>
         </p>
         {data.bucket && (
-          <p className="text-sm mt-1 font-semibold" style={{ color: data.color }}>
+          <p className="text-xs mt-2 font-bold uppercase tracking-wider" style={{ color: data.color }}>
             {data.bucket} Bucket
           </p>
         )}
@@ -48,10 +48,10 @@ function CustomBarTooltip({ active, payload }) {
 function CustomPieTooltip({ active, payload }) {
   if (active && payload && payload[0]) {
     return (
-      <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg text-sm">
-        <p className="font-semibold text-gray-900">{payload[0].name}</p>
-        <p className="text-gray-700 font-bold">{formatCurrencyINR(payload[0].value)}</p>
-        <p className="text-gray-600">{payload[0].payload.percentage.toFixed(1)}% of total</p>
+      <div className="bg-white p-3 border border-slate-200 rounded-lg shadow-xl shadow-slate-200/50 text-sm">
+        <p className="font-bold text-slate-900">{payload[0].name}</p>
+        <p className="text-slate-700 font-bold text-lg">{formatCurrencyINR(payload[0].value)}</p>
+        <p className="text-slate-500">{payload[0].payload.percentage.toFixed(1)}% of total</p>
       </div>
     );
   }
@@ -83,7 +83,7 @@ function PieChartComponent({ bucketTotals, bucketOrder, totalIncome }) {
           cx="50%"
           cy="50%"
           labelLine={false}
-          label={({ name, percentage }) => `${name} (${percentage.toFixed(0)}%)`}
+          label={({ name, percentage }) => percentage > 5 ? `${name} (${percentage.toFixed(0)}%)` : ''}
           outerRadius={100}
           fill="#8884d8"
           dataKey="value"
@@ -107,8 +107,8 @@ function PieChartComponent({ bucketTotals, bucketOrder, totalIncome }) {
 export default function CategoryChart({ categoryBreakdown, totalIncome }) {
   if (!categoryBreakdown || Object.keys(categoryBreakdown).length === 0) {
     return (
-      <div className="p-6 bg-white rounded-lg border border-gray-200">
-        <p className="text-gray-600 text-center">No category data available</p>
+      <div className="p-8 bg-white rounded-2xl border border-slate-200 text-center shadow-sm">
+        <p className="text-slate-500 font-medium">No category data available</p>
       </div>
     );
   }
@@ -149,26 +149,33 @@ export default function CategoryChart({ categoryBreakdown, totalIncome }) {
   return (
     <div className="space-y-8">
       {/* Interactive Bar Chart for Categories */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">All Categories</h3>
-        <p className="text-sm text-gray-600 mb-4">Hover over bars to see detailed information</p>
-
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-md">
+        <div className="flex items-center justify-between mb-6">
+           <h3 className="text-lg font-bold text-slate-900">All Categories</h3>
+           <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full border border-slate-200">
+             Sorted by Amount
+           </span>
+        </div>
+        
         <ResponsiveContainer width="100%" height={400}>
           <BarChart
             data={chartData}
             margin={{ top: 20, right: 30, left: 20, bottom: 100 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
             <XAxis
               dataKey="name"
               tick={false}
+              axisLine={{ stroke: '#cbd5e1' }}
             />
             <YAxis
-              label={{ value: 'Amount (£)', angle: -90, position: 'insideLeft' }}
-              tick={{ fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: '#64748b' }}
+              tickFormatter={(value) => `£${value}`}
             />
-            <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} />
-            <Bar dataKey="amount" radius={[8, 8, 0, 0]} label={null}>
+            <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(241, 245, 249, 0.5)' }} />
+            <Bar dataKey="amount" radius={[6, 6, 0, 0]} label={null}>
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
@@ -178,8 +185,8 @@ export default function CategoryChart({ categoryBreakdown, totalIncome }) {
       </div>
 
       {/* Bucket Distribution Pie Chart */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6 text-center">Bucket Distribution</h3>
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-md">
+        <h3 className="text-lg font-bold text-slate-900 mb-6 text-center">Bucket Distribution</h3>
         <PieChartComponent bucketTotals={bucketTotals} bucketOrder={bucketOrder} totalIncome={totalIncome} />
       </div>
     </div>

@@ -48,7 +48,7 @@ export default function AuthButton() {
     <button
       onClick={isInitialized ? signIn : undefined}
       disabled={!isInitialized}
-      className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all duration-200 font-medium text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+      className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md shadow-blue-500/10 hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 font-medium text-sm disabled:opacity-70 disabled:cursor-not-allowed"
     >
       <LogIn className="w-4 h-4" />
       <span>Sign In with Google</span>
