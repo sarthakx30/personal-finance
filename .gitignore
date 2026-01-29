@@ -9,6 +9,11 @@ Thumbs.db
 *.env
 *.env.local
 
+# Project Metadata & Docs
+*.md
+!README.md
+STATUS.txt
+
 # Dependencies & Build
 node_modules/
 dist/
