@@ -19,7 +19,14 @@ This application provides a modern, responsive interface to manage your finances
 - **Storage/API:** Google Sheets API, Google Drive API, Google Identity Services
 
 ## 📋 Versioning
-### **v1.0.0 (Current)**
+### **v1.5.0 (Current)**
+- **UI/UX Overhaul:** Refined visual theme with high-contrast light mode, sharper cards, and consistent blue brand styling.
+- **New Brand Identity:** Custom-designed logo integrated into the app header, favicon, and sign-in screen.
+- **Improved Navigation:** Global Sheet Selector accessible from all views.
+- **Enhanced Feedback:** Skeleton loading states for smoother transitions in lists and forms.
+- **Dark Mode:** Full support for dark color schemes with automatic detection and manual toggle.
+
+### **v1.0.0**
 - Initial release with core CRUD functionality for transactions.
 - Google Sheets connectivity and authentication.
 - Dashboard summary cards and category breakdown.
