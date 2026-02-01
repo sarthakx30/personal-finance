@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { useSheetsList } from '../../hooks/useGoogleSheets';
 import { ChevronDown, FileSpreadsheet, Check, Search } from 'lucide-react';
@@ -101,3 +102,4 @@ export default function SheetSelector({ onSelectSheet, selectedSheetId }) {
     </div>
   );
 }
+

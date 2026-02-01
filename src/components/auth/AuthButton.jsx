@@ -1,3 +1,4 @@
+import React from 'react';
 import { LogIn, LogOut, Loader2, AlertCircle } from 'lucide-react';
 import { useGoogleAuth } from '../../hooks/useGoogleAuth';
 
@@ -55,3 +56,4 @@ export default function AuthButton() {
     </button>
   );
 }
+

@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../../config/categories';
 import { validateTransaction } from '../../utils/validators';
@@ -300,3 +301,4 @@ export default function TransactionForm({ onSubmit, isLoading, initialData = nul
     </form>
   );
 }
+

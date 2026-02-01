@@ -1,3 +1,4 @@
+import React from 'react';
 import { Receipt, SearchX } from 'lucide-react';
 import TransactionItem from './TransactionItem';
 
@@ -80,3 +81,4 @@ export default function TransactionList({
     </div>
   );
 }
+

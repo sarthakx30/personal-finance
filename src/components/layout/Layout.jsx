@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { LayoutDashboard, List, PlusCircle, LogOut, Menu, User } from 'lucide-react';
 import AuthButton from '../auth/AuthButton';
 import ThemeToggle from '../common/ThemeToggle';

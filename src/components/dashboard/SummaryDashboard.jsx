@@ -1,3 +1,4 @@
+import React from 'react';
 import { TrendingUp, TrendingDown, Wallet, PieChart } from 'lucide-react';
 import { formatCurrencyINR } from '../../utils/formatters';
 import CategoryChart from './CategoryChart';
@@ -112,3 +113,4 @@ export default function SummaryDashboard({ summary, loading, error }) {
     </div>
   );
 }
+

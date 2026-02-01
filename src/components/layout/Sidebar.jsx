@@ -1,3 +1,4 @@
+import React from 'react';
 import { LayoutDashboard, Wallet, List, PlusCircle, X } from 'lucide-react';
 
 export default function Sidebar({ currentView, onViewChange, isOpen, onClose }) {
@@ -101,3 +102,4 @@ export default function Sidebar({ currentView, onViewChange, isOpen, onClose }) 
     </>
   );
 }
+

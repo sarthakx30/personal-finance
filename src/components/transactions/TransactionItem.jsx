@@ -1,3 +1,4 @@
+import React from 'react';
 import { formatDate, formatCurrencyINR } from '../../utils/formatters';
 import { Pencil, Trash2, Calendar, Tag } from 'lucide-react';
 
@@ -57,3 +58,4 @@ export default function TransactionItem({
     </div>
   );
 }
+
