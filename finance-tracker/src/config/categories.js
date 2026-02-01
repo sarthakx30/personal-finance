@@ -1,72 +1,33 @@
-// Fixed expense categories - Defaults for new users
-export const EXPENSE_CATEGORIES = [
-    'Food',
-    'Groceries',
-    'Transportation',
-    'Housing',
-    'Utilities',
-    'Health',
-    'Insurance',
-    'Debt',
-    'Savings',
-    'Entertainment',
-    'Personal Care',
-    'Education',
-    'Gifts',
-    'Travel',
-    'Other',
-];
+// Dynamic categories fetched from Google Sheets
+// These serve as fallbacks for new users or when a sheet isn't loaded
+export const EXPENSE_CATEGORIES = [];
 
 // Fixed income categories
-export const INCOME_CATEGORIES = [
-    'Salary',
-    'Bonus',
-    'Freelance',
-    'Investment',
-    'Gift',
-    'Refund',
-    'Other',
-];
+export const INCOME_CATEGORIES = [];
 
-// Budget bucket configuration for categorizing expenses
+// Default budget bucket configuration
+// Users can customize this via the Bucket Editor, which saves to Google Drive
 export const BUCKET_CONFIG = {
     'Need': {
-        categories: [
-            'groceries',
-            'housing',
-            'utilities',
-            'health',
-            'insurance',
-            'transportation',
-        ],
+        categories: [],
         color: '#ef4444', // Red
         threshold_percent: 0.55,
         red_marking: 'OVER',
     },
     'Want': {
-        categories: [
-            'food',
-            'entertainment',
-            'personal care',
-            'gifts',
-            'travel',
-        ],
+        categories: [],
         color: '#f59e0b', // Amber/Orange
         threshold_percent: 0.30,
         red_marking: 'OVER',
     },
     'Save': {
-        categories: ['savings', 'investment'],
+        categories: [],
         color: '#10b981', // Green
         threshold_percent: 0.20,
         red_marking: 'UNDER',
     },
     'Other': {
-        categories: [
-            'debt',
-            'education',
-            'other',
-        ],
+        categories: [],
         color: '#6366f1', // Indigo
         threshold_percent: 0.05,
         red_marking: 'OVER',
@@ -80,10 +41,11 @@ export const BUCKET_CONFIG = {
  * @returns {string} The bucket name (Need, Want, Save, Other)
  */
 export const getCategoryBucket = (categoryName, bucketConfig = BUCKET_CONFIG) => {
+    if (!categoryName) return 'Other';
     const normalizedName = categoryName.toLowerCase().trim();
 
     for (const [bucketName, bucketData] of Object.entries(bucketConfig)) {
-        if (bucketData.categories.some(cat => cat.toLowerCase() === normalizedName)) {
+        if (bucketData.categories && bucketData.categories.some(cat => cat.toLowerCase() === normalizedName)) {
             return bucketName;
         }
     }

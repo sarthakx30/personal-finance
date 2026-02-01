@@ -375,6 +375,7 @@ export const getSummary = async (spreadsheetId) => {
     endBalance: 0,
     categoryBreakdown: {},
     expenseCategories: [],
+    incomeCategories: [],
   };
 
   try {
@@ -403,40 +404,48 @@ export const getSummary = async (spreadsheetId) => {
     }
     
     // Parse categories starting from row 28 (index 27)
-    // B28+C28 = category name (combined), E28 = actual amount
     for (let i = 27; i < values.length; i++) {
       const row = values[i];
       if (!row) continue;
       
-      // Combine B and C columns for category name
-      const colB = (row[1] || '').toString().trim();
-      const colC = (row[2] || '').toString().trim();
-      const categoryName = (colB + (colC ? ' ' + colC : '')).trim();
-      const categoryAmount = row[4] || ''; // Column E (index 4)
+      // 1. Expense Categories: B28+C28 (combined), E28 = actual amount
+      const expColB = (row[1] || '').toString().trim();
+      const expColC = (row[2] || '').toString().trim();
+      const expCategoryName = (expColB + (expColC ? ' ' + expColC : '')).trim();
       
-      // Skip empty rows and header rows
-      if (!categoryName || categoryName === 'Expenses') continue;
-      
-      // Skip if the row starts with metadata
-      if (categoryName.includes('Planned') || categoryName.includes('Actual') || 
-          categoryName.includes('Diff') || categoryName.includes('Totals') ||
-          categoryName.includes('Income')) {
-        continue;
-      }
-      
-      // Add to unique list of categories
-      if (!summary.expenseCategories.includes(categoryName)) {
-        summary.expenseCategories.push(categoryName);
+      // 2. Income Categories: H28+I28 (combined) - Column H=7, I=8
+      const incColH = (row[7] || '').toString().trim();
+      const incColI = (row[8] || '').toString().trim();
+      const incCategoryName = (incColH + (incColI ? ' ' + incColI : '')).trim();
+
+      // Skip common headers and metadata
+      const isHeader = (name) => !name || 
+        name === 'Expenses' || name === 'Income' || 
+        name.includes('Planned') || name.includes('Actual') || 
+        name.includes('Diff') || name.includes('Totals');
+
+      // Add Expense Category
+      if (!isHeader(expCategoryName)) {
+        if (!summary.expenseCategories.includes(expCategoryName)) {
+          summary.expenseCategories.push(expCategoryName);
+        }
+        const amount = parseCurrency(row[4]); // Column E
+        if (amount > 0 || expCategoryName) {
+          summary.categoryBreakdown[expCategoryName] = amount;
+        }
       }
 
-      const amount = parseCurrency(categoryAmount);
-      if (amount > 0 || categoryName) {
-        summary.categoryBreakdown[categoryName] = amount;
+      // Add Income Category
+      if (!isHeader(incCategoryName)) {
+        if (!summary.incomeCategories.includes(incCategoryName)) {
+          summary.incomeCategories.push(incCategoryName);
+        }
       }
     }
     
     // Sort categories
     summary.expenseCategories.sort();
+    summary.incomeCategories.sort();
     
   } catch (error) {
     console.error('Error getting summary:', error);

@@ -38,12 +38,17 @@ export const useGoogleSheets = (spreadsheetId) => {
       setIncomeTransactions(incomeData);
       setSummary(summaryData);
 
-      // Extract unique income categories from transactions since Summary sheet might not have them
-      const incomeCats = [...new Set(incomeData.map(t => t.category).filter(Boolean))].sort();
+      // Extract unique income categories from transactions as fallback
+      const transactionIncomeCats = [...new Set(incomeData.map(t => t.category).filter(Boolean))].sort();
+      
+      // Use Summary sheet categories if available, otherwise use transaction-based ones
+      const finalIncomeCats = (summaryData?.incomeCategories?.length > 0) 
+        ? summaryData.incomeCategories 
+        : transactionIncomeCats;
 
       setCategories({
         expense: summaryData?.expenseCategories || [],
-        income: incomeCats.length > 0 ? incomeCats : ['Salary', 'Bonus', 'Freelance', 'Investment', 'Gift', 'Other'],
+        income: finalIncomeCats,
       });
 
     } catch (err) {

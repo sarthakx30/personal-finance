@@ -230,17 +230,29 @@ export default function TransactionForm({ onSubmit, isLoading, initialData = nul
             name="category"
             value={formData.category}
             onChange={handleChange}
-            className={`w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border-transparent dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer ${
+            disabled={currentCategories.length === 0}
+            className={`w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border-transparent dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
               errors.category ? 'ring-2 ring-red-500/20 bg-red-50 dark:bg-red-900/20' : ''
             }`}
           >
-            <option value="">Select a category...</option>
-            {currentCategories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
+            {currentCategories.length === 0 ? (
+              <option value="">Please select a budget period first...</option>
+            ) : (
+              <>
+                <option value="">Select a category...</option>
+                {currentCategories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </>
+            )}
           </select>
+          {currentCategories.length === 0 && (
+            <p className="mt-1 text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+              Categories are loaded from your selected Google Sheet.
+            </p>
+          )}
         </div>
 
         {/* Description */}

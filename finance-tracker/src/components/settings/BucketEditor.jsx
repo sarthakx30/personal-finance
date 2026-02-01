@@ -95,9 +95,36 @@ function BucketContainer({ id, title, categories, color }) {
 }
 
 // --- Main Editor Component ---
-export default function BucketEditor({ onClose }) {
+export default function BucketEditor({ onClose, activeCategories = [] }) {
   const { config, updateBucketConfig } = useConfig();
-  const [buckets, setBuckets] = useState(config.buckets);
+  const [buckets, setBuckets] = useState(() => {
+    const initialBuckets = JSON.parse(JSON.stringify(config.buckets));
+    const activeSet = new Set(activeCategories.map(c => c.toLowerCase()));
+
+    // 1. Filter existing buckets to only show active categories
+    Object.keys(initialBuckets).forEach(bucketKey => {
+      initialBuckets[bucketKey].categories = initialBuckets[bucketKey].categories.filter(cat => 
+        activeSet.has(cat.toLowerCase())
+      );
+    });
+
+    // 2. Add any active categories that are missing from config to 'Other'
+    const configuredCategories = new Set(
+      Object.values(config.buckets).flatMap(b => b.categories.map(c => c.toLowerCase()))
+    );
+
+    const missingCategories = activeCategories.filter(c => !configuredCategories.has(c.toLowerCase()));
+    
+    if (missingCategories.length > 0) {
+      if (!initialBuckets['Other']) {
+        initialBuckets['Other'] = { categories: [], color: '#6366f1' }; // Fallback
+      }
+      initialBuckets['Other'].categories.push(...missingCategories);
+    }
+
+    return initialBuckets;
+  });
+
   const [activeId, setActiveId] = useState(null);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
@@ -110,6 +137,8 @@ export default function BucketEditor({ onClose }) {
       buckets[key].categories.includes(id) // id is category name here
     );
   };
+
+  // ... (sensors, handleDragStart, handleDragOver, handleDragEnd remain same)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -212,7 +241,29 @@ export default function BucketEditor({ onClose }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateBucketConfig(buckets);
+      // Merge logic:
+      // 1. Start with original config to preserve inactive categories
+      const newBuckets = JSON.parse(JSON.stringify(config.buckets));
+      const activeSet = new Set(activeCategories.map(c => c.toLowerCase()));
+
+      // 2. Remove all *active* categories from the original config buckets
+      //    (We will re-add them based on the user's new edits)
+      Object.keys(newBuckets).forEach(key => {
+        newBuckets[key].categories = newBuckets[key].categories.filter(cat => 
+          !activeSet.has(cat.toLowerCase())
+        );
+      });
+
+      // 3. Add the categories from the *current* state (user edits) to the correct buckets
+      Object.entries(buckets).forEach(([bucketKey, bucketData]) => {
+        if (!newBuckets[bucketKey]) {
+           newBuckets[bucketKey] = { ...bucketData, categories: [] };
+        }
+        // Add the edited categories back in
+        newBuckets[bucketKey].categories.push(...bucketData.categories);
+      });
+
+      await updateBucketConfig(newBuckets);
       toast.success('Budget buckets updated successfully');
       onClose();
     } catch (error) {
@@ -255,15 +306,22 @@ export default function BucketEditor({ onClose }) {
     bucket.categories.map(cat => ({ name: cat, bucket: bucketName }))
   ).sort((a, b) => a.name.localeCompare(b.name));
 
+  const uniqueCategoryCount = allCategories.length;
+
   return (
     <div className="flex flex-col h-[70vh]">
-      <div className="mb-4">
-         <p className="text-slate-600 dark:text-slate-400 text-sm hidden md:block">
-            Drag and drop categories between buckets to reorganize your budget. Changes will apply to all months.
-         </p>
-         <p className="text-slate-600 dark:text-slate-400 text-sm md:hidden">
-            Select the appropriate bucket for each category.
-         </p>
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+         <div className="space-y-1">
+            <p className="text-slate-600 dark:text-slate-400 text-sm hidden md:block">
+               Drag and drop categories between buckets to reorganize your budget. Changes will apply to all months.
+            </p>
+            <p className="text-slate-600 dark:text-slate-400 text-sm md:hidden">
+               Select the appropriate bucket for each category.
+            </p>
+         </div>
+         <div className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold rounded-full border border-blue-100 dark:border-blue-800/50 w-fit shrink-0">
+            {uniqueCategoryCount} Unique Categories
+         </div>
       </div>
 
       {/* Desktop View: Drag and Drop */}

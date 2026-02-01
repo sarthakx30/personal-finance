@@ -172,7 +172,10 @@ export default function CategoryChart({ categoryBreakdown, totalIncome }) {
         onClose={() => setIsEditorOpen(false)}
         title="Manage Budget Buckets"
       >
-        <BucketEditor onClose={() => setIsEditorOpen(false)} />
+        <BucketEditor 
+          onClose={() => setIsEditorOpen(false)} 
+          activeCategories={Object.keys(categoryBreakdown)}
+        />
       </Modal>
     </div>
   );
