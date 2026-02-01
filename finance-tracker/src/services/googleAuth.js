@@ -84,18 +84,39 @@ export const initializeGoogleAuth = async () => {
   }
 };
 
+// Fetch user info using access token
+const fetchUserInfo = async (token) => {
+  const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch user info');
+  }
+  return await response.json();
+};
+
 // Sign in with Google (popup)
 export const signInWithGoogle = async () => {
   if (!tokenClient) {
     throw new Error('Google Identity Services not initialized');
   }
   return new Promise((resolve, reject) => {
-    tokenClient.callback = (response) => {
+    tokenClient.callback = async (response) => {
       if (response && response.access_token) {
         accessToken = response.access_token;
-        currentUser = { access_token: accessToken };
-        listeners.forEach((cb) => cb(true));
-        resolve(currentUser);
+        try {
+           const userInfo = await fetchUserInfo(accessToken);
+           currentUser = { access_token: accessToken, ...userInfo };
+           listeners.forEach((cb) => cb(true));
+           resolve(currentUser);
+        } catch (error) {
+           console.error("Failed to fetch user details", error);
+           // Still consider signed in, but without details? Or fail?
+           // Better to have partial session than none, but let's try to get details.
+           currentUser = { access_token: accessToken };
+           listeners.forEach((cb) => cb(true));
+           resolve(currentUser);
+        }
       } else {
         listeners.forEach((cb) => cb(false));
         reject(new Error('Failed to sign in'));

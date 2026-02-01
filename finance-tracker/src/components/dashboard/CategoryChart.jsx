@@ -1,37 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
+  Tooltip,
+  ResponsiveContainer,
 } from 'recharts';
-import { groupCategoriesByBucket, BUCKET_CONFIG } from '../../config/categories';
+import { Settings } from 'lucide-react';
+import { groupCategoriesByBucket } from '../../config/categories';
 import { formatCurrencyINR } from '../../utils/formatters';
+import Modal from '../common/Modal';
+import BucketEditor from '../settings/BucketEditor';
+import { useConfig } from '../../context/ConfigContext';
 
 /**
- * CustomBarTooltip Component
- * Shows detailed info when hovering over a bar
+ * CustomPieTooltip Component
+ * Shows detailed info when hovering over pie slices
  */
-function CustomBarTooltip({ active, payload }) {
+function CustomPieTooltip({ active, payload }) {
   if (active && payload && payload[0]) {
     const data = payload[0].payload;
     return (
-      <div className="bg-white p-4 border rounded-lg shadow-xl shadow-slate-200/50" style={{ borderColor: data.color }}>
-        <p className="font-bold text-slate-900 text-sm">{data.name}</p>
-        <p className="text-sm text-slate-700 mt-1">
-          Amount: <span className="font-bold text-lg">{formatCurrencyINR(data.amount)}</span>
-        </p>
-        <p className="text-sm text-slate-600">
-          Percentage: <span className="font-semibold">{data.percentage.toFixed(1)}%</span>
-        </p>
+      <div className="bg-white dark:bg-slate-800 p-3 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl shadow-slate-200/50 dark:shadow-none text-sm" style={{ borderColor: data.color || 'transparent' }}>
+        <p className="font-bold text-slate-900 dark:text-white">{data.name}</p>
+        <p className="text-slate-700 dark:text-slate-300 font-bold text-lg">{formatCurrencyINR(data.value)}</p>
+        <p className="text-slate-500 dark:text-slate-400">{data.percentage.toFixed(1)}% of total</p>
         {data.bucket && (
-          <p className="text-xs mt-2 font-bold uppercase tracking-wider" style={{ color: data.color }}>
+          <p className="text-xs mt-1 font-bold uppercase tracking-wider" style={{ color: data.color }}>
             {data.bucket} Bucket
           </p>
         )}
@@ -42,39 +37,10 @@ function CustomBarTooltip({ active, payload }) {
 }
 
 /**
- * CustomPieTooltip Component
- * Shows detailed info when hovering over pie slices
+ * GenericPieChart Component
+ * Renders a pie chart using Recharts
  */
-function CustomPieTooltip({ active, payload }) {
-  if (active && payload && payload[0]) {
-    return (
-      <div className="bg-white p-3 border border-slate-200 rounded-lg shadow-xl shadow-slate-200/50 text-sm">
-        <p className="font-bold text-slate-900">{payload[0].name}</p>
-        <p className="text-slate-700 font-bold text-lg">{formatCurrencyINR(payload[0].value)}</p>
-        <p className="text-slate-500">{payload[0].payload.percentage.toFixed(1)}% of total</p>
-      </div>
-    );
-  }
-  return null;
-}
-
-/**
- * PieChartComponent Component
- * Renders a pie chart for bucket distribution using Recharts
- */
-function PieChartComponent({ bucketTotals, bucketOrder, totalIncome }) {
-  const data = bucketOrder.map(bucketName => {
-    const bucket = bucketTotals[bucketName];
-    const percentage = totalIncome > 0 ? (bucket.amount / totalIncome) * 100 : 0;
-    return {
-      name: bucketName,
-      value: parseFloat(bucket.amount.toFixed(2)),
-      percentage: percentage,
-    };
-  });
-
-  const colors = bucketOrder.map(bucketName => BUCKET_CONFIG[bucketName].color);
-
+function GenericPieChart({ data, labelThreshold = 5 }) {
   return (
     <ResponsiveContainer width="100%" height={350}>
       <PieChart>
@@ -83,13 +49,14 @@ function PieChartComponent({ bucketTotals, bucketOrder, totalIncome }) {
           cx="50%"
           cy="50%"
           labelLine={false}
-          label={({ name, percentage }) => percentage > 5 ? `${name} (${percentage.toFixed(0)}%)` : ''}
-          outerRadius={100}
-          fill="#8884d8"
+          label={({ name, percentage }) => percentage > labelThreshold ? `${name} (${percentage.toFixed(0)}%)` : ''}
+          outerRadius={105}
+          innerRadius={40}
+          paddingAngle={2}
           dataKey="value"
         >
-          {colors.map((color, index) => (
-            <Cell key={`cell-${index}`} fill={color} />
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={entry.color || '#8884d8'} stroke="transparent" />
           ))}
         </Pie>
         <Tooltip content={<CustomPieTooltip />} />
@@ -100,30 +67,41 @@ function PieChartComponent({ bucketTotals, bucketOrder, totalIncome }) {
 
 /**
  * CategoryChart Component
- * Displays all individual categories in an interactive bar chart
- * Shows bucket breakdown in a pie chart below
- * Features: Hover tooltips for detailed information
+ * Displays two side-by-side pie charts:
+ * 1. Individual Categories Distribution
+ * 2. Bucket Distribution
  */
 export default function CategoryChart({ categoryBreakdown, totalIncome }) {
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const { config } = useConfig();
+  const currentBuckets = config.buckets;
+
   if (!categoryBreakdown || Object.keys(categoryBreakdown).length === 0) {
     return (
-      <div className="p-8 bg-white rounded-2xl border border-slate-200 text-center shadow-sm">
-        <p className="text-slate-500 font-medium">No category data available</p>
+      <div className="p-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-center shadow-sm">
+        <p className="text-slate-500 dark:text-slate-400 font-medium">No category data available</p>
       </div>
     );
   }
 
-  const bucketTotals = groupCategoriesByBucket(categoryBreakdown);
+  const bucketTotals = groupCategoriesByBucket(categoryBreakdown, currentBuckets);
 
   // Calculate total expenses for percentage calculation
   const totalExpenses = Object.values(bucketTotals).reduce((sum, bucket) => sum + bucket.amount, 0);
+
+  // Add (Total Income - Total Expenses) to "Save" bucket
+  // This represents unspent money which counts as savings
+  const netSavings = totalIncome - totalExpenses;
+  if (bucketTotals['Save']) {
+    bucketTotals['Save'].amount += netSavings;
+  }
 
   // Get bucket order for consistent display
   const bucketOrder = ['Need', 'Want', 'Save', 'Other'];
 
   // Get bucket color for each category
   const getCategoryBucket = (categoryName) => {
-    for (const [bucketName, bucketConfig] of Object.entries(BUCKET_CONFIG)) {
+    for (const [bucketName, bucketConfig] of Object.entries(currentBuckets)) {
       if (bucketConfig.categories.some(cat => cat.toLowerCase() === categoryName.toLowerCase())) {
         return bucketName;
       }
@@ -131,64 +109,71 @@ export default function CategoryChart({ categoryBreakdown, totalIncome }) {
     return 'Other';
   };
 
-  // Prepare data for bar chart - percentages based on total income
-  const chartData = Object.entries(categoryBreakdown)
+  // Prepare data for "All Categories" Pie Chart
+  const categoryData = Object.entries(categoryBreakdown)
     .map(([name, amount]) => {
       const bucket = getCategoryBucket(name);
       const percentage = totalIncome > 0 ? (amount / totalIncome) * 100 : 0;
       return {
         name,
-        amount: parseFloat(amount.toFixed(2)),
+        value: parseFloat(amount.toFixed(2)),
         percentage: parseFloat(percentage.toFixed(1)),
         bucket,
-        color: BUCKET_CONFIG[bucket].color,
+        color: currentBuckets[bucket]?.color || currentBuckets['Other']?.color || '#cbd5e1',
       };
     })
-    .sort((a, b) => b.amount - a.amount);
+    .sort((a, b) => b.value - a.value);
+
+  // Prepare data for "Bucket Distribution" Pie Chart
+  const bucketData = bucketOrder.map(bucketName => {
+    const bucket = bucketTotals[bucketName];
+    const percentage = totalIncome > 0 ? (bucket.amount / totalIncome) * 100 : 0;
+    return {
+      name: bucketName,
+      value: parseFloat(bucket.amount.toFixed(2)),
+      percentage: percentage,
+      color: currentBuckets[bucketName]?.color || '#cbd5e1',
+    };
+  });
 
   return (
-    <div className="space-y-8">
-      {/* Interactive Bar Chart for Categories */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-md">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Categories Pie Chart */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-md">
         <div className="flex items-center justify-between mb-6">
-           <h3 className="text-lg font-bold text-slate-900">All Categories</h3>
-           <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full border border-slate-200">
-             Sorted by Amount
+           <h3 className="text-lg font-bold text-slate-900 dark:text-white">Category Breakdown</h3>
+           <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full border border-slate-200 dark:border-slate-600">
+             % of Total Income
            </span>
         </div>
-        
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart
-            data={chartData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 100 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-            <XAxis
-              dataKey="name"
-              tick={false}
-              axisLine={{ stroke: '#cbd5e1' }}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: '#64748b' }}
-              tickFormatter={(value) => `£${value}`}
-            />
-            <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(241, 245, 249, 0.5)' }} />
-            <Bar dataKey="amount" radius={[6, 6, 0, 0]} label={null}>
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <GenericPieChart data={categoryData} labelThreshold={3} />
       </div>
 
       {/* Bucket Distribution Pie Chart */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-md">
-        <h3 className="text-lg font-bold text-slate-900 mb-6 text-center">Bucket Distribution</h3>
-        <PieChartComponent bucketTotals={bucketTotals} bucketOrder={bucketOrder} totalIncome={totalIncome} />
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-md">
+        <div className="flex items-center justify-between mb-6">
+           <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Bucket Distribution</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Need / Want / Save</p>
+           </div>
+           <button 
+              onClick={() => setIsEditorOpen(true)}
+              className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all border border-transparent hover:border-blue-100 dark:hover:border-blue-800 flex items-center gap-2 text-xs font-medium"
+           >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Manage Buckets</span>
+           </button>
+        </div>
+        <GenericPieChart data={bucketData} labelThreshold={5} />
       </div>
+
+      <Modal 
+        isOpen={isEditorOpen} 
+        onClose={() => setIsEditorOpen(false)}
+        title="Manage Budget Buckets"
+      >
+        <BucketEditor onClose={() => setIsEditorOpen(false)} />
+      </Modal>
     </div>
   );
 }

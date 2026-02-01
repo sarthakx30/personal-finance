@@ -19,7 +19,14 @@ This application provides a modern, responsive interface to manage your finances
 - **Storage/API:** Google Sheets API, Google Drive API, Google Identity Services
 
 ## 📋 Versioning
-### **v1.5.0 (Current)**
+### **v1.6.0 (Current)**
+- **Sidebar Layout:** New responsive sidebar navigation with mobile drawer support.
+- **Bucket Editor:** Drag-and-drop interface (Desktop) and list view (Mobile) to organize categories into budget buckets. Configuration is saved to Google Drive.
+- **Profile Management:** Dedicated account page with profile picture and centralized sign-out.
+- **Notifications:** Integrated toast notification system for success/error feedback.
+- **Permissions:** Enhanced Google Drive integration to support saving app configuration.
+
+### **v1.5.0**
 - **UI/UX Overhaul:** Refined visual theme with high-contrast light mode, sharper cards, and consistent blue brand styling.
 - **New Brand Identity:** Custom-designed logo integrated into the app header, favicon, and sign-in screen.
 - **Improved Navigation:** Global Sheet Selector accessible from all views.

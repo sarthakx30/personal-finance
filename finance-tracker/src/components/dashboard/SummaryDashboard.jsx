@@ -1,5 +1,6 @@
 import { TrendingUp, TrendingDown, Wallet, PieChart } from 'lucide-react';
 import { formatCurrencyINR } from '../../utils/formatters';
+import CategoryChart from './CategoryChart';
 
 export default function SummaryDashboard({ summary, loading, error }) {
   if (loading) {
@@ -22,8 +23,11 @@ export default function SummaryDashboard({ summary, loading, error }) {
 
   if (!summary) return null;
 
-  const { totalIncome, totalExpenses, savings } = summary;
-  const savingsRate = totalIncome > 0 ? (savings / totalIncome) * 100 : 0;
+  const { totalIncome, totalExpenses, categoryBreakdown, endBalance } = summary;
+  
+  const investmentAmount = categoryBreakdown['Investment'] || 0;
+  const realSavings = investmentAmount + (endBalance || 0);
+  const savingsRate = totalIncome > 0 ? (realSavings / totalIncome) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -86,14 +90,24 @@ export default function SummaryDashboard({ summary, loading, error }) {
               <h3 className="text-sm font-semibold text-slate-500 dark:text-blue-200 uppercase tracking-wide">Net Savings</h3>
             </div>
             <p className="text-3xl font-bold text-slate-900 dark:text-blue-400">
-              {formatCurrencyINR(savings)}
+              {formatCurrencyINR(realSavings)}
             </p>
-            <p className="text-xs text-blue-700 dark:text-blue-400/70 mt-2 font-semibold flex items-center gap-1 bg-blue-50 dark:bg-transparent px-2 py-1 rounded-md inline-block border border-blue-100 dark:border-transparent">
-               <PieChart className="w-3 h-3" />
-               Savings Rate: {savingsRate.toFixed(1)}%
-            </p>
+            <div className="mt-2 flex flex-col gap-1">
+              <p className="text-xs text-blue-700 dark:text-blue-400/70 font-semibold flex items-center gap-1 bg-blue-50 dark:bg-transparent px-2 py-1 rounded-md w-fit border border-blue-100 dark:border-transparent">
+                 <PieChart className="w-3 h-3" />
+                 Savings Rate: {savingsRate.toFixed(1)}%
+              </p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 pl-1">
+                Includes Investment ({formatCurrencyINR(investmentAmount)}) + Balance ({formatCurrencyINR(endBalance || 0)})
+              </p>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+         <CategoryChart categoryBreakdown={categoryBreakdown} totalIncome={totalIncome} />
       </div>
     </div>
   );

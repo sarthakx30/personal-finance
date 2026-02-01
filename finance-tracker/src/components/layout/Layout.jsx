@@ -1,71 +1,81 @@
-import { LayoutDashboard, List, PlusCircle, LogOut } from 'lucide-react';
+import { useState } from 'react';
+import { LayoutDashboard, List, PlusCircle, LogOut, Menu, User } from 'lucide-react';
 import AuthButton from '../auth/AuthButton';
 import ThemeToggle from '../common/ThemeToggle';
+import Sidebar from './Sidebar';
+import { useGoogleAuth } from '../../hooks/useGoogleAuth';
 
 export default function Layout({ children, currentView, onViewChange, isSignedIn }) {
-  const navItems = [
-    { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-    { id: 'transactions', label: 'Transactions', icon: List },
-  ];
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user } = useGoogleAuth();
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-      {/* Desktop/Tablet Header */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-all duration-300">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="Logo" className="w-10 h-10 shadow-sm rounded-xl" />
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight hidden sm:block">
-              Finance Tracker
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* Desktop Navigation */}
-            {isSignedIn && (
-              <>
-                <nav className="hidden md:flex items-center gap-1 mr-4">
-                  {navItems.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => onViewChange(item.id)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2
-                        ${
-                          currentView === item.id
-                            ? 'bg-blue-50 dark:bg-slate-800 text-blue-700 dark:text-white'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                        }`}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {item.label}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => onViewChange('add')}
-                    className={`ml-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border
-                        ${
-                          currentView === 'add'
-                            ? 'bg-blue-600 text-white border-transparent shadow-md shadow-blue-200/50'
-                            : 'bg-white border-blue-100 text-blue-600 hover:bg-blue-50 hover:border-blue-200 dark:bg-blue-900/20 dark:border-transparent dark:text-blue-400 dark:hover:bg-blue-900/30'
-                        }`}
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    Add New
-                  </button>
-                </nav>
-                <AuthButton />
-              </>
-            )}
-            
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      {isSignedIn && (
+        <Sidebar 
+          currentView={currentView} 
+          onViewChange={onViewChange} 
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+        />
+      )}
 
       {/* Main Content Area */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
-        {children}
-      </main>
+      <div className={`${isSignedIn ? 'md:pl-64' : ''} transition-all duration-300`}>
+        {/* Header - Simplified for Sidebar Layout */}
+        <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-all duration-300">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+            <div className="flex items-center gap-3 md:hidden">
+              {isSignedIn && (
+                <button 
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="p-2 -ml-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                >
+                  <Menu className="w-6 h-6" />
+                </button>
+              )}
+              <img src="/logo.svg" alt="Logo" className="w-10 h-10 shadow-sm rounded-xl" />
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                FinTrack
+              </h1>
+            </div>
+
+            <div className="hidden md:block"></div>
+
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              {isSignedIn && (
+                <button
+                  onClick={() => onViewChange('account')}
+                  className={`relative p-1 rounded-full transition-all duration-200 border-2 
+                    ${currentView === 'account' 
+                      ? 'border-blue-600 dark:border-blue-500 shadow-md shadow-blue-500/20' 
+                      : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  title="Account"
+                >
+                  {user?.picture ? (
+                    <img 
+                      src={user.picture} 
+                      alt="Profile" 
+                      className="w-8 h-8 rounded-full object-cover" 
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                      <User className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                    </div>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
+          {children}
+        </main>
+      </div>
 
       {/* Mobile Bottom Navigation */}
       {isSignedIn && (

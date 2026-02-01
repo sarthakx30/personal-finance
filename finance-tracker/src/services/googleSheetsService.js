@@ -372,6 +372,7 @@ export const getSummary = async (spreadsheetId) => {
     totalIncome: 0,
     totalExpenses: 0,
     savings: 0,
+    endBalance: 0,
     categoryBreakdown: {},
   };
 
@@ -391,6 +392,13 @@ export const getSummary = async (spreadsheetId) => {
       const row22 = values[21];
       summary.totalExpenses = parseCurrency(row26[4]); // Column E (index 4)
       summary.totalIncome = parseCurrency(row26[10]) || parseCurrency(row22[8]); // Column K (index 10) or I22 (index 8)
+    }
+
+    // Get End Balance from E17-D17 (index 16, column 4 - column 3)
+    if (values[16]) {
+        const actual = parseCurrency(values[16][4]);
+        const planned = parseCurrency(values[16][3]);
+        summary.endBalance = actual - planned;
     }
     
     // Parse categories starting from row 28 (index 27)

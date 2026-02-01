@@ -6,10 +6,13 @@ import TransactionForm from './components/transactions/TransactionForm';
 import TransactionList from './components/transactions/TransactionList';
 import SummaryDashboard from './components/dashboard/SummaryDashboard';
 import AuthButton from './components/auth/AuthButton';
+import AccountView from './components/auth/AccountView';
 import Layout from './components/layout/Layout';
 import { useGoogleAuth } from './hooks/useGoogleAuth';
 import { useGoogleSheets } from './hooks/useGoogleSheets';
 import { ThemeProvider } from './context/ThemeContext';
+import { ConfigProvider } from './context/ConfigContext';
+import { ToastProvider } from './context/ToastContext';
 
 function AppContent() {
   const { isSignedIn, loading: authLoading } = useGoogleAuth();
@@ -126,15 +129,17 @@ function AppContent() {
 
   return (
     <Layout currentView={currentView} onViewChange={setCurrentView} isSignedIn={isSignedIn}>
-        {/* Global Sheet Selector */}
-        <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
-           <section className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-md border border-slate-200 dark:border-slate-700">
-              <div className="mb-2">
-                 <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Budget Period</h2>
-              </div>
-              <SheetSelector onSelectSheet={handleSelectSheet} selectedSheetId={selectedSheetId} />
-           </section>
-        </div>
+        {/* Global Sheet Selector - Hide on account page */}
+        {currentView !== 'account' && (
+          <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
+             <section className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-md border border-slate-200 dark:border-slate-700">
+                <div className="mb-2">
+                   <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Budget Period</h2>
+                </div>
+                <SheetSelector onSelectSheet={handleSelectSheet} selectedSheetId={selectedSheetId} />
+             </section>
+          </div>
+        )}
 
         {currentView === 'dashboard' && (
            <div className="space-y-6 animate-in fade-in duration-500">
@@ -206,6 +211,10 @@ function AppContent() {
               </div>
            </div>
         )}
+
+        {currentView === 'account' && (
+           <AccountView />
+        )}
     </Layout>
   );
 }
@@ -213,7 +222,11 @@ function AppContent() {
 function App() {
    return (
       <ThemeProvider>
-         <AppContent />
+         <ToastProvider>
+            <ConfigProvider>
+               <AppContent />
+            </ConfigProvider>
+         </ToastProvider>
       </ThemeProvider>
    )
 }
