@@ -4,7 +4,7 @@ import { validateTransaction } from '../../utils/validators';
 import { formatDateInput } from '../../utils/formatters';
 import { Save, PlusCircle, MinusCircle } from 'lucide-react';
 
-export default function TransactionForm({ onSubmit, isLoading, initialData = null }) {
+export default function TransactionForm({ onSubmit, isLoading, initialData = null, availableCategories }) {
   // Calculate today's date safely inside the component
   const getToday = () => new Date().toISOString().split('T')[0];
 
@@ -71,7 +71,10 @@ export default function TransactionForm({ onSubmit, isLoading, initialData = nul
     e.preventDefault();
 
     // Select categories based on type
-    const categoriesList = formData.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    const expenseCats = (availableCategories?.expense?.length > 0) ? availableCategories.expense : EXPENSE_CATEGORIES;
+    const incomeCats = (availableCategories?.income?.length > 0) ? availableCategories.income : INCOME_CATEGORIES;
+    
+    const categoriesList = formData.type === 'income' ? incomeCats : expenseCats;
 
     // Validate
     const validation = validateTransaction(formData, categoriesList);
@@ -104,7 +107,10 @@ export default function TransactionForm({ onSubmit, isLoading, initialData = nul
     }
   };
 
-  const currentCategories = formData.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const expenseCats = (availableCategories?.expense?.length > 0) ? availableCategories.expense : EXPENSE_CATEGORIES;
+  const incomeCats = (availableCategories?.income?.length > 0) ? availableCategories.income : INCOME_CATEGORIES;
+  const currentCategories = formData.type === 'income' ? incomeCats : expenseCats;
+  
   const isExpense = formData.type === 'expense';
 
   // Skeleton Loading State (when loading but NOT submitting)

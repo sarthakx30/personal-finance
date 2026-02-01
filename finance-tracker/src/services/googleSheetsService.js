@@ -374,6 +374,7 @@ export const getSummary = async (spreadsheetId) => {
     savings: 0,
     endBalance: 0,
     categoryBreakdown: {},
+    expenseCategories: [],
   };
 
   try {
@@ -423,11 +424,20 @@ export const getSummary = async (spreadsheetId) => {
         continue;
       }
       
+      // Add to unique list of categories
+      if (!summary.expenseCategories.includes(categoryName)) {
+        summary.expenseCategories.push(categoryName);
+      }
+
       const amount = parseCurrency(categoryAmount);
       if (amount > 0 || categoryName) {
         summary.categoryBreakdown[categoryName] = amount;
       }
     }
+    
+    // Sort categories
+    summary.expenseCategories.sort();
+    
   } catch (error) {
     console.error('Error getting summary:', error);
   }

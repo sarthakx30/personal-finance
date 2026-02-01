@@ -16,6 +16,7 @@ export const useGoogleSheets = (spreadsheetId) => {
   const [transactions, setTransactions] = useState([]); // Expenses
   const [incomeTransactions, setIncomeTransactions] = useState([]); // Income
   const [summary, setSummary] = useState(null);
+  const [categories, setCategories] = useState({ expense: [], income: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -36,6 +37,15 @@ export const useGoogleSheets = (spreadsheetId) => {
       setTransactions(transactionsData);
       setIncomeTransactions(incomeData);
       setSummary(summaryData);
+
+      // Extract unique income categories from transactions since Summary sheet might not have them
+      const incomeCats = [...new Set(incomeData.map(t => t.category).filter(Boolean))].sort();
+
+      setCategories({
+        expense: summaryData?.expenseCategories || [],
+        income: incomeCats.length > 0 ? incomeCats : ['Salary', 'Bonus', 'Freelance', 'Investment', 'Gift', 'Other'],
+      });
+
     } catch (err) {
       setError(err.message || 'Failed to fetch data');
     } finally {
@@ -142,6 +152,7 @@ export const useGoogleSheets = (spreadsheetId) => {
     transactions,
     incomeTransactions,
     summary,
+    categories,
     loading,
     error,
     fetchData,

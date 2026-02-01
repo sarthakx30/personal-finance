@@ -25,6 +25,7 @@ function AppContent() {
     transactions, // Expenses
     incomeTransactions, // Income
     summary,
+    categories,
     loading,
     error,
     handleAddTransaction,
@@ -207,6 +208,7 @@ function AppContent() {
                     onSubmit={handleFormSubmit}
                     isLoading={loading}
                     initialData={editingTransaction}
+                    availableCategories={categories}
                  />
               </div>
            </div>
