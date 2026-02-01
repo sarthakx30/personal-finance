@@ -23,9 +23,13 @@ This application provides a modern, responsive interface to manage your finances
 - **Dynamic Categories:** Application now fetches expense and income categories directly from the Google Sheet's "Summary" tab and transaction history, ensuring 100% synchronization with your budget template.
 - **Smart Bucket Editor:** The bucket configuration tool now intelligently filters to show only the categories present in the currently selected month, reducing clutter.
 - **Privacy Enhanced:** Removed all hardcoded category lists and personal references from the source code.
+
+### **v1.6.0**
 - **Sidebar Layout:** New responsive sidebar navigation with mobile drawer support.
+- **Bucket Editor:** Drag-and-drop interface (Desktop) and list view (Mobile) to organize categories into budget buckets. Configuration is saved to Google Drive.
 - **Profile Management:** Dedicated account page with profile picture and centralized sign-out.
 - **Notifications:** Integrated toast notification system for success/error feedback.
+- **Permissions:** Enhanced Google Drive integration to support saving app configuration.
 
 ### **v1.5.0**
 - **UI/UX Overhaul:** Refined visual theme with high-contrast light mode, sharper cards, and consistent blue brand styling.
