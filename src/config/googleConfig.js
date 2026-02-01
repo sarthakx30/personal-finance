@@ -10,3 +10,18 @@ export const GOOGLE_CONFIG = {
     'profile',
   ],
 };
+
+// Debug logging (Safe: does not log actual keys)
+console.log('Google Auth Config Check:');
+console.log('- Client ID Loaded:', !!GOOGLE_CONFIG.clientId);
+console.log('- API Key Loaded:', !!GOOGLE_CONFIG.apiKey);
+
+if (!GOOGLE_CONFIG.clientId || !GOOGLE_CONFIG.apiKey) {
+  console.error("CRITICAL: Google API Client ID or API Key is missing. App will not function.");
+}
+
+if (!GOOGLE_CONFIG.clientId || !GOOGLE_CONFIG.apiKey) {
+  console.error("CRITICAL: Google API Client ID or API Key is missing. Check your environment variables.");
+  console.log("Client ID present:", !!GOOGLE_CONFIG.clientId);
+  console.log("API Key present:", !!GOOGLE_CONFIG.apiKey);
+}
