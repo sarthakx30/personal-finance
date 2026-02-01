@@ -94,7 +94,7 @@ function AppContent() {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 animate-pulse">
-           <img src="/logo.svg" alt="Logo" className="w-16 h-16 shadow-lg rounded-2xl" />
+           <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Logo" className="w-16 h-16 shadow-lg rounded-2xl" />
            <p className="font-medium text-slate-500 dark:text-slate-400">Loading Finance Tracker...</p>
         </div>
       </div>
@@ -111,7 +111,7 @@ function AppContent() {
           <div className="flex flex-col items-center justify-center py-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
              <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-700 max-w-md w-full text-center">
                 <div className="mx-auto mb-6 transform -rotate-6 hover:rotate-0 transition-transform duration-300 w-20 h-20">
-                   <img src="/logo.svg" alt="Finance Tracker Logo" className="w-full h-full shadow-lg rounded-2xl" />
+                   <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Finance Tracker Logo" className="w-full h-full shadow-lg rounded-2xl" />
                 </div>
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">
                    Finance Tracker

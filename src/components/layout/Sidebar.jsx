@@ -33,7 +33,7 @@ export default function Sidebar({ currentView, onViewChange, isOpen, onClose }) 
       >
         <div className="p-6 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 px-2">
-              <img src="/logo.svg" alt="Logo" className="w-10 h-10 shadow-sm rounded-xl" />
+              <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Logo" className="w-10 h-10 shadow-sm rounded-xl" />
               <span className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">FinTrack</span>
           </div>
           <button onClick={onClose} className="md:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400">

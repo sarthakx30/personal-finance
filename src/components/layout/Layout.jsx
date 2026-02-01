@@ -34,7 +34,7 @@ export default function Layout({ children, currentView, onViewChange, isSignedIn
                   <Menu className="w-6 h-6" />
                 </button>
               )}
-              <img src="/logo.svg" alt="Logo" className="w-10 h-10 shadow-sm rounded-xl" />
+              <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Logo" className="w-10 h-10 shadow-sm rounded-xl" />
               <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
                 FinTrack
               </h1>
