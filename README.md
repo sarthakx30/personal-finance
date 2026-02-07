@@ -40,7 +40,7 @@ This application provides a modern, responsive interface to manage your finances
 - **Enhanced Feedback:** Skeleton loading states for smoother transitions in lists and forms.
 - **Dark Mode:** Full support for dark color schemes with automatic detection and manual toggle.
 
-### **v1.0.0**
+### **v0.10**
 - Initial release with core CRUD functionality for transactions.
 - Google Sheets connectivity and authentication.
 - Dashboard summary cards and category breakdown.
