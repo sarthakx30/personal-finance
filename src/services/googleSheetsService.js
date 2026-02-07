@@ -63,29 +63,55 @@ export const listMonthlySheets = async () => {
 };
 
 /**
+ * Helper to convert Google Sheets Serial Date to YYYY-MM-DD
+ */
+const serialDateToISO = (serial) => {
+  if (!serial || isNaN(serial)) return '';
+  // Excel/Sheets base date is Dec 30, 1899. 25569 is the offset to Unix Epoch.
+  const date = new Date((serial - 25569) * 86400 * 1000);
+  // Add 12 hours to avoid timezone shifting issues (dates are usually midnight)
+  date.setHours(date.getHours() + 12);
+  return date.toISOString().split('T')[0];
+};
+
+/**
  * Get EXPENSE transactions from a specific sheet (Columns B-E)
+ * Uses UNFORMATTED_VALUE to get raw numbers for amounts and serial dates
  */
 export const getTransactions = async (spreadsheetId) => {
   const accessToken = getAccessToken();
   if (!accessToken) throw new Error('Not authenticated');
-  const res = await fetch(`${SHEETS_API}/${spreadsheetId}/values/Transactions!B:E`, {
+  
+  // Use UNFORMATTED_VALUE to get raw numbers and dates
+  const res = await fetch(`${SHEETS_API}/${spreadsheetId}/values/Transactions!B:E?valueRenderOption=UNFORMATTED_VALUE`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
+  
   if (!res.ok) throw new Error('Failed to get transactions');
   const data = await res.json();
   const values = data.values || [];
+  
   // Skip rows 1-4 (metadata and headers), start from row 5
-  // Column order: B=date, C=amount, D=description, E=category
   return values.slice(4).map((row, index) => {
-    // Parse amount: remove currency symbol and commas
-    const amountStr = (row[1] || '').toString().replace(/[£,₹]/g, '').trim();
-    const amount = parseFloat(amountStr) || 0;
+    // row[0] = Date (Serial Number), row[1] = Amount (Number), row[2] = Desc, row[3] = Cat
+    
+    // Parse Date
+    let dateStr = '';
+    if (typeof row[0] === 'number') {
+      dateStr = serialDateToISO(row[0]);
+    } else {
+      dateStr = row[0] || ''; // Fallback if it's already a string
+    }
+
+    // Parse Amount (It's already a number or raw string)
+    const amount = Number(row[1]) || 0;
+
     return {
-      id: index + 5, // Row number in sheet (accounting for 4 header rows)
-      date: row[0] || '',
+      id: index + 5, 
+      date: dateStr,
       amount: amount,
-      description: row[2] || '',
-      category: row[3] || '',
+      description: (row[2] || '').toString(),
+      category: (row[3] || '').toString(),
       type: 'expense'
     };
   });
@@ -93,31 +119,42 @@ export const getTransactions = async (spreadsheetId) => {
 
 /**
  * Get INCOME transactions from a specific sheet (Columns G-J)
+ * Uses UNFORMATTED_VALUE to get raw numbers for amounts and serial dates
  */
 export const getIncomeTransactions = async (spreadsheetId) => {
   const accessToken = getAccessToken();
   if (!accessToken) throw new Error('Not authenticated');
-  const res = await fetch(`${SHEETS_API}/${spreadsheetId}/values/Transactions!G:J`, {
+  
+  const res = await fetch(`${SHEETS_API}/${spreadsheetId}/values/Transactions!G:J?valueRenderOption=UNFORMATTED_VALUE`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
+  
   if (!res.ok) throw new Error('Failed to get income transactions');
   const data = await res.json();
   const values = data.values || [];
+  
   // Skip rows 1-4 (metadata and headers), start from row 5
-  // Column order: G=date, H=amount, I=description, J=category
   return values.slice(4).map((row, index) => {
     // Filter out empty rows
     if (!row[0] && !row[1] && !row[2]) return null;
 
-    // Parse amount: remove currency symbol and commas
-    const amountStr = (row[1] || '').toString().replace(/[£,₹]/g, '').trim();
-    const amount = parseFloat(amountStr) || 0;
+    // Parse Date
+    let dateStr = '';
+    if (typeof row[0] === 'number') {
+      dateStr = serialDateToISO(row[0]);
+    } else {
+      dateStr = row[0] || '';
+    }
+
+    // Parse Amount
+    const amount = Number(row[1]) || 0;
+
     return {
-      id: index + 5, // Row number in sheet
-      date: row[0] || '',
+      id: index + 5,
+      date: dateStr,
       amount: amount,
-      description: row[2] || '',
-      category: row[3] || '',
+      description: (row[2] || '').toString(),
+      category: (row[3] || '').toString(),
       type: 'income'
     };
   }).filter(item => item !== null);

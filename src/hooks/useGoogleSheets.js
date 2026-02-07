@@ -34,6 +34,11 @@ export const useGoogleSheets = (spreadsheetId) => {
         getSummary(spreadsheetId),
       ]);
 
+      // Sort by Date Descending (Latest first)
+      // Dates are ISO strings (YYYY-MM-DD), so string comparison works
+      transactionsData.sort((a, b) => b.date.localeCompare(a.date));
+      incomeData.sort((a, b) => b.date.localeCompare(a.date));
+
       setTransactions(transactionsData);
       setIncomeTransactions(incomeData);
       setSummary(summaryData);

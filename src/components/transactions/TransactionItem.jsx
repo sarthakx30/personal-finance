@@ -17,8 +17,8 @@ export default function TransactionItem({
            <h4 className="font-medium text-slate-900 dark:text-slate-100 truncate pr-2" title={transaction.description}>
               {transaction.description || 'Untitled Transaction'}
            </h4>
-           <span className={`font-semibold whitespace-nowrap ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-slate-100'}`}>
-              {isIncome ? '+' : ''}{formatCurrencyINR(transaction.amount)}
+           <span className={`font-semibold whitespace-nowrap ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+              {isIncome ? '+' : '-'}{formatCurrencyINR(transaction.amount)}
            </span>
         </div>
         
