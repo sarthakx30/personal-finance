@@ -1,188 +1,227 @@
-import React from 'react';
-import { useNetWorth } from '../../hooks/useNetWorth';
-import { formatCurrencyINR, formatDate } from '../../utils/formatters';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { formatCurrencyINR } from '../../utils/formatters';
+import { TrendingUp, TrendingDown, Wallet, Plus, Trash2, Calendar } from 'lucide-react';
 
-export default function NetWorthDashboard() {
-  const { data, loading, error } = useNetWorth();
-
-  if (loading) {
-    return (
-      <div className="p-8 space-y-6 animate-pulse">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-          <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-          <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-        </div>
-        <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6 text-center">
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl inline-block">
-          {error}
-        </div>
-      </div>
-    );
-  }
-
-  if (!data || data.length === 0) {
-    return (
-      <div className="p-8 text-center text-slate-500 dark:text-slate-400">
-        No net worth data recorded yet.
-      </div>
-    );
-  }
-
-  // Sort data by date
-  const sortedData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+export default function NetWorthDashboard({ 
+  assets, 
+  logs, 
+  onAddAsset, 
+  onAddLog, 
+  onDeleteAsset, 
+  isLoading 
+}) {
+  const [showAddAsset, setShowAddAsset] = useState(false);
+  const [newAsset, setNewAsset] = useState({ name: '', type: 'ASSET' });
   
-  const latest = sortedData[sortedData.length - 1];
-  const previous = sortedData.length > 1 ? sortedData[sortedData.length - 2] : latest;
+  const [showAddLog, setShowAddLog] = useState(null); // Asset ID
+  const [newLog, setNewLog] = useState({ balance: '', date: new Date().toISOString().split('T')[0], note: '' });
 
-  const netWorthChange = latest.netWorth - previous.netWorth;
-  const isPositive = netWorthChange >= 0;
+  // Group logs by asset for easier display
+  const logsByAsset = logs.reduce((acc, log) => {
+    if (!acc[log.asset_id]) acc[log.asset_id] = [];
+    acc[log.asset_id].push(log);
+    return acc;
+  }, {});
 
-  // Format date for chart (e.g., "Jan 25")
-  const chartData = sortedData.map(item => ({
-    ...item,
-    formattedDate: new Date(item.date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-  }));
+  // Calculate current net worth
+  // Get the latest log for each asset
+  const latestBalances = assets.reduce((acc, asset) => {
+    const assetLogs = logsByAsset[asset.id] || [];
+    const latestLog = assetLogs[0]; // logs are sorted desc by date
+    const balance = latestLog ? Number(latestLog.balance) : 0;
+    
+    if (asset.type === 'ASSET') acc.assets += balance;
+    else acc.liabilities += balance;
+    
+    return acc;
+  }, { assets: 0, liabilities: 0 });
+
+  const netWorth = latestBalances.assets - latestBalances.liabilities;
+
+  const handleAddAsset = async (e) => {
+    e.preventDefault();
+    await onAddAsset(newAsset);
+    setNewAsset({ name: '', type: 'ASSET' });
+    setShowAddAsset(false);
+  };
+
+  const handleAddLog = async (e) => {
+    e.preventDefault();
+    await onAddLog({ ...newLog, asset_id: showAddLog, balance: Number(newLog.balance) });
+    setNewLog({ balance: '', date: new Date().toISOString().split('T')[0], note: '' });
+    setShowAddLog(null);
+  };
 
   return (
-    <div className="space-y-8">
-      {/* KPI Cards */}
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Net Worth */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-5">
-            <Wallet className="w-24 h-24 text-blue-600" />
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-md border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3 mb-2 text-blue-600 dark:text-blue-400">
+            <Wallet className="w-5 h-5" />
+            <h3 className="text-sm font-bold uppercase tracking-wider">Net Worth</h3>
           </div>
-          <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Net Worth</h3>
           <p className="text-3xl font-bold text-slate-900 dark:text-white">
-            {formatCurrencyINR(latest.netWorth)}
+            {formatCurrencyINR(netWorth)}
           </p>
-          <div className={`flex items-center gap-1 mt-2 text-sm font-medium ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
-            {isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-            <span>{formatCurrencyINR(Math.abs(netWorthChange))}</span>
-            <span className="text-slate-400 dark:text-slate-500 font-normal ml-1">vs last month</span>
-          </div>
         </div>
-
-        {/* Total Assets */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-5">
-            <TrendingUp className="w-24 h-24 text-emerald-600" />
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-md border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3 mb-2 text-emerald-600 dark:text-emerald-400">
+            <TrendingUp className="w-5 h-5" />
+            <h3 className="text-sm font-bold uppercase tracking-wider">Total Assets</h3>
           </div>
-          <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Total Assets</h3>
-          <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-            {formatCurrencyINR(latest.totalAssets)}
+          <p className="text-3xl font-bold text-slate-900 dark:text-white">
+            {formatCurrencyINR(latestBalances.assets)}
           </p>
-          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-2">
-             <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-md whitespace-nowrap">Savings: {formatCurrencyINR(latest.savings)}</span>
-             <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-md whitespace-nowrap">Stocks: {formatCurrencyINR(latest.stocks)}</span>
-             <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-md whitespace-nowrap">MF: {formatCurrencyINR(latest.mutualFunds)}</span>
-             <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-md whitespace-nowrap">PPF: {formatCurrencyINR(latest.ppf)}</span>
-          </div>
         </div>
-
-        {/* Total Liabilities */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-5">
-            <TrendingDown className="w-24 h-24 text-red-600" />
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-md border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3 mb-2 text-red-600 dark:text-red-400">
+            <TrendingDown className="w-5 h-5" />
+            <h3 className="text-sm font-bold uppercase tracking-wider">Total Liabilities</h3>
           </div>
-          <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Total Liabilities</h3>
-          <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-            {formatCurrencyINR(latest.totalLiabilities)}
+          <p className="text-3xl font-bold text-slate-900 dark:text-white">
+            {formatCurrencyINR(latestBalances.liabilities)}
           </p>
-          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-             Current Debt Load
-          </div>
         </div>
       </div>
 
-      {/* Chart Section */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between mb-6">
-           <h3 className="text-lg font-bold text-slate-900 dark:text-white">Net Worth Trend</h3>
-        </div>
-        <div className="h-[400px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorNetWorth" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
-              <XAxis 
-                dataKey="formattedDate" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#64748b', fontSize: 12 }}
-                dy={10}
-              />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#64748b', fontSize: 12 }}
-                tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
-              />
-              <Tooltip 
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                formatter={(value) => formatCurrencyINR(value)}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="netWorth" 
-                stroke="#3b82f6" 
-                strokeWidth={3}
-                fillOpacity={1} 
-                fill="url(#colorNetWorth)" 
-                name="Net Worth"
-              />
-              <Line type="monotone" dataKey="totalAssets" stroke="#10b981" strokeWidth={2} dot={false} name="Assets" strokeDasharray="5 5" />
-              <Line type="monotone" dataKey="totalLiabilities" stroke="#ef4444" strokeWidth={2} dot={false} name="Liabilities" strokeDasharray="5 5" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Accounts & Assets</h2>
+        <button 
+          onClick={() => setShowAddAsset(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold shadow-md hover:bg-blue-700 transition-all"
+        >
+          <Plus className="w-4 h-4" /> Add Account
+        </button>
       </div>
 
-      {/* History Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-         <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">History</h3>
-         </div>
-         <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-               <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700">
-                  <tr>
-                     <th className="px-6 py-4">Date</th>
-                     <th className="px-6 py-4">Assets</th>
-                     <th className="px-6 py-4">Liabilities</th>
-                     <th className="px-6 py-4">Net Worth</th>
-                     <th className="px-6 py-4">Comment</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {[...sortedData].reverse().map((row, i) => (
-                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{formatDate(row.date)}</td>
-                        <td className="px-6 py-4 text-emerald-600 dark:text-emerald-400">{formatCurrencyINR(row.totalAssets)}</td>
-                        <td className="px-6 py-4 text-red-600 dark:text-red-400">{formatCurrencyINR(row.totalLiabilities)}</td>
-                        <td className="px-6 py-4 font-bold text-blue-600 dark:text-blue-400">{formatCurrencyINR(row.netWorth)}</td>
-                        <td className="px-6 py-4 text-slate-500 dark:text-slate-400 max-w-xs truncate" title={row.comment}>{row.comment}</td>
-                     </tr>
-                  ))}
-               </tbody>
-            </table>
-         </div>
+      {showAddAsset && (
+        <form onSubmit={handleAddAsset} className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-blue-500/30 shadow-xl flex flex-wrap gap-4 items-end">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Account Name</label>
+            <input 
+              required
+              value={newAsset.name}
+              onChange={e => setNewAsset({...newAsset, name: e.target.value})}
+              className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 rounded-xl" 
+              placeholder="e.g. HDFC Bank, SBI Home Loan"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Type</label>
+            <select 
+              value={newAsset.type}
+              onChange={e => setNewAsset({...newAsset, type: e.target.value})}
+              className="px-4 py-2 bg-slate-50 dark:bg-slate-900 rounded-xl"
+            >
+              <option value="ASSET">Asset (Positive)</option>
+              <option value="LIABILITY">Liability (Negative)</option>
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold">Save</button>
+            <button type="button" onClick={() => setShowAddAsset(false)} className="px-6 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl">Cancel</button>
+          </div>
+        </form>
+      )}
+
+      {/* Assets List */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {assets.map(asset => {
+          const assetLogs = logsByAsset[asset.id] || [];
+          const latestLog = assetLogs[0];
+          const isAsset = asset.type === 'ASSET';
+
+          return (
+            <div key={asset.id} className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">{asset.name}</h3>
+                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${isAsset ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                      {asset.type}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-2xl font-bold ${isAsset ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {formatCurrencyINR(latestLog?.balance || 0)}
+                    </p>
+                    <p className="text-xs text-slate-500">Latest update: {latestLog ? formatDate(latestLog.date) : 'Never'}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setShowAddLog(asset.id)}
+                    className="flex-1 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-bold transition-all"
+                  >
+                    Update Balance
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if(window.confirm('Delete this account and all its history?')) onDeleteAsset(asset.id);
+                    }}
+                    className="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* History Preview */}
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 border-t border-slate-100 dark:border-slate-800">
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-widest">Recent History</h4>
+                {assetLogs.slice(0, 3).map(log => (
+                  <div key={log.id} className="flex justify-between text-xs py-1.5">
+                    <span className="text-slate-500">{formatDate(log.date)}</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{formatCurrencyINR(log.balance)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Update Modal Overlay */}
+              {showAddLog === asset.id && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                  <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl shadow-2xl p-6">
+                    <h3 className="text-xl font-bold mb-4">Update Balance: {asset.name}</h3>
+                    <form onSubmit={handleAddLog} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">New Balance (as of today)</label>
+                        <input 
+                          type="number"
+                          required
+                          value={newLog.balance}
+                          onChange={e => setNewLog({...newLog, balance: e.target.value})}
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700" 
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Date</label>
+                        <input 
+                          type="date"
+                          required
+                          value={newLog.date}
+                          onChange={e => setNewLog({...newLog, date: e.target.value})}
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 rounded-xl"
+                        />
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">Update</button>
+                        <button type="button" onClick={() => setShowAddLog(null)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 rounded-xl font-bold">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }

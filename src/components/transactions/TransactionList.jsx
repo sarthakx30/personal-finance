@@ -64,19 +64,17 @@ export default function TransactionList({
   }
 
   return (
-    <div className="overflow-hidden">
-      <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
-        <div className="divide-y divide-slate-100 dark:divide-slate-700">
-          {transactions.map((transaction) => (
-            <TransactionItem
-              key={transaction.id}
-              transaction={transaction}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              isLoading={isLoading}
-            />
-          ))}
-        </div>
+    <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="divide-y divide-slate-100 dark:divide-slate-700">
+        {transactions.map((transaction) => (
+          <TransactionItem
+            key={transaction.id}
+            transaction={transaction}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            isLoading={isLoading}
+          />
+        ))}
       </div>
     </div>
   );

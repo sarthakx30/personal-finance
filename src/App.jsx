@@ -1,87 +1,109 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutDashboard } from 'lucide-react';
 import './App.css';
-import SheetSelector from './components/sheets/SheetSelector';
 import TransactionForm from './components/transactions/TransactionForm';
 import TransactionList from './components/transactions/TransactionList';
 import SummaryDashboard from './components/dashboard/SummaryDashboard';
 import AuthButton from './components/auth/AuthButton';
 import AccountView from './components/auth/AccountView';
 import NetWorthDashboard from './components/networth/NetWorthDashboard';
-import LoanDashboard from './components/networth/LoanDashboard';
 import Layout from './components/layout/Layout';
 import { useGoogleAuth } from './hooks/useGoogleAuth';
-import { useGoogleSheets } from './hooks/useGoogleSheets';
+import { useTransactions } from './hooks/useTransactions';
+import { useAssets } from './hooks/useAssets';
+import CategoryManager from './components/settings/CategoryManager';
+import * as categoryService from './services/categoryService';
 import { ThemeProvider } from './context/ThemeContext';
 import { ConfigProvider } from './context/ConfigContext';
 import { ToastProvider } from './context/ToastContext';
 
+import DashboardLayout from './components/dashboard/DashboardLayout';
+
 function AppContent() {
   const { isSignedIn, loading: authLoading } = useGoogleAuth();
-  const [selectedSheetId, setSelectedSheetId] = useState(null);
-  const [editingTransaction, setEditingTransaction] = useState(null);
-  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' | 'transactions' | 'add'
-  const [listViewType, setListViewType] = useState('expense'); // 'expense' | 'income'
+  
+  // Global Date Filter State (Default: This Month)
+  const today = new Date();
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+  
+  const [dateFilter, setDateFilter] = useState({
+    start: startOfMonth,
+    end: endOfMonth
+  });
 
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [currentView, setCurrentView] = useState('dashboard'); 
+  const [transactionSubView, setTransactionSubView] = useState('history'); // 'overview' | 'add' | 'history'
+  const [listViewType, setListViewType] = useState('expense'); 
+
+  // Pass filters to hook
   const {
-    transactions, // Expenses
-    incomeTransactions, // Income
-    summary,
+    transactions,
     categories,
     loading,
     error,
-    handleAddTransaction,
-    handleAddIncomeTransaction,
-    handleUpdateTransaction,
-    handleUpdateIncomeTransaction,
-    handleDeleteTransaction,
-    handleDeleteIncomeTransaction,
-  } = useGoogleSheets(selectedSheetId);
+    refresh: refreshTransactions,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+  } = useTransactions({ startDate: dateFilter.start, endDate: dateFilter.end });
 
-  const handleSelectSheet = (sheet) => {
-    setSelectedSheetId(sheet.id);
-    setEditingTransaction(null);
-    setListViewType('expense');
+  const {
+    assets,
+    logs,
+    loading: assetsLoading,
+    addAsset,
+    addLog,
+    deleteAsset,
+  } = useAssets();
+
+  // Handle Date Change
+  const handleDateChange = (start, end) => {
+    setDateFilter({ start, end });
   };
 
+  // Filter transactions based on type
+  const filteredTransactions = transactions.filter(t => t.type === listViewType);
+
   const handleFormSubmit = async (formData) => {
-    // Determine type from formData or editingTransaction
-    const type = formData.type || (editingTransaction ? editingTransaction.type : 'expense');
-    
-    if (editingTransaction) {
-      if (type === 'income') {
-        await handleUpdateIncomeTransaction(editingTransaction.id, formData);
+    try {
+      if (editingTransaction) {
+        await updateTransaction(editingTransaction.id, formData);
+        setEditingTransaction(null);
+        setCurrentView('transactions');
       } else {
-        await handleUpdateTransaction(editingTransaction.id, formData);
+        await addTransaction(formData);
+        setCurrentView('transactions');
+        setListViewType(formData.type || 'expense');
       }
-      setEditingTransaction(null);
-      setCurrentView('transactions'); // Go back to list after edit
-    } else {
-      if (type === 'income') {
-        await handleAddIncomeTransaction(formData);
-      } else {
-        await handleAddTransaction(formData);
-      }
-      // Optional: Don't switch view immediately to allow multiple adds, 
-      // or switch to transactions to show feedback. 
-      // User preference varies. Let's stay on add for "Quick Add" feel or go to dashboard?
-      // Let's stay on form but maybe show a success toast (not implemented yet).
-      // For now, let's redirect to transactions to see the entry.
-      setCurrentView('transactions');
-      setListViewType(type); // Ensure we see what we added
+    } catch (err) {
+      console.error('Failed to save transaction:', err);
     }
   };
 
   const handleEdit = (transaction) => {
     setEditingTransaction(transaction);
-    setCurrentView('add'); // Reuse add view for editing
+    setCurrentView('add');
   };
 
   const handleDelete = async (id) => {
-    if (listViewType === 'income') {
-      await handleDeleteIncomeTransaction(id);
-    } else {
-      await handleDeleteTransaction(id);
+    try {
+      await deleteTransaction(id);
+    } catch (err) {
+      console.error('Failed to delete:', err);
+    }
+  };
+
+  const handleAddCategory = async (catData) => {
+    await categoryService.addCategory(catData);
+    await refreshTransactions(); // refresh hook data
+  };
+
+  const handleDeleteCategory = async (id) => {
+    if (window.confirm('Are you sure? Transactions using this category will show as Uncategorized.')) {
+      await categoryService.deleteCategory(id);
+      await refreshTransactions();
     }
   };
 
@@ -103,10 +125,6 @@ function AppContent() {
     );
   }
 
-  // Not signed in state handled by Layout or just a landing page wrapper?
-  // The Layout handles nav visibility based on isSignedIn.
-  // But we want a landing page if not signed in.
-  
   if (!isSignedIn) {
      return (
        <Layout currentView={currentView} onViewChange={setCurrentView} isSignedIn={isSignedIn}>
@@ -131,105 +149,183 @@ function AppContent() {
   }
 
   return (
-    <Layout currentView={currentView} onViewChange={setCurrentView} isSignedIn={isSignedIn}>
-        {/* Global Sheet Selector - Hide on account page and net worth/loans page */}
-        {currentView !== 'account' && currentView !== 'net-worth' && currentView !== 'loans' && (
-          <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
-             <section className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-md border border-slate-200 dark:border-slate-700">
-                <div className="mb-2">
-                   <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Budget Period</h2>
-                </div>
-                <SheetSelector onSelectSheet={handleSelectSheet} selectedSheetId={selectedSheetId} />
-             </section>
-          </div>
-        )}
-
+    <Layout 
+      currentView={currentView} 
+      onViewChange={setCurrentView} 
+      isSignedIn={isSignedIn}
+      subView={transactionSubView}
+      onSubViewChange={setTransactionSubView}
+      dateFilter={dateFilter}
+      onDateChange={handleDateChange}
+    >
         {currentView === 'dashboard' && (
-           <div className="space-y-6 animate-in fade-in duration-500">
-              {selectedSheetId ? (
-                 <SummaryDashboard summary={summary} loading={loading} error={error} />
-              ) : (
-                 <div className="text-center py-12">
-                    <p className="text-slate-500 dark:text-slate-400">Select a sheet to view your dashboard</p>
-                 </div>
-              )}
-           </div>
+           <DashboardLayout 
+              transactions={transactions}
+              loading={loading}
+              error={error}
+              dateFilter={dateFilter}
+              onDateChange={handleDateChange}
+              netWorthData={{ assets, logs }}
+              onViewChange={setCurrentView}
+           />
         )}
 
         {currentView === 'net-worth' && (
            <div className="animate-in fade-in duration-500">
-              <NetWorthDashboard />
-           </div>
-        )}
-
-        {currentView === 'loans' && (
-           <div className="animate-in fade-in duration-500">
-              <LoanDashboard />
+              <NetWorthDashboard 
+                assets={assets} 
+                logs={logs} 
+                onAddAsset={addAsset} 
+                onAddLog={addLog} 
+                onDeleteAsset={deleteAsset}
+                isLoading={assetsLoading}
+              />
            </div>
         )}
 
         {currentView === 'transactions' && (
-           <div className="space-y-6 animate-in fade-in duration-500">
-              {/* View Type Toggles */}
-              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                 <button
-                    onClick={() => setListViewType('expense')}
-                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
-                       listViewType === 'expense' 
-                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-black/5' 
-                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                    }`}
-                 >
-                    Expenses
-                 </button>
-                 <button
-                    onClick={() => setListViewType('income')}
-                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
-                       listViewType === 'income' 
-                       ? 'bg-white dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-black/5' 
-                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                    }`}
-                 >
-                    Income
-                 </button>
-              </div>
+           <div className="animate-in fade-in duration-500">
+              {/* Desktop Layout: All-in-one */}
+              <div className="hidden md:flex flex-col gap-8">
+                 <section className="space-y-4">
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Period Summary</h2>
+                    <SummaryDashboard transactions={transactions} loading={loading} error={error} />
+                 </section>
 
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden min-h-[50vh]">
-                 <TransactionList
-                    transactions={listViewType === 'income' ? incomeTransactions : transactions}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    isLoading={loading}
-                    error={error}
-                    type={listViewType}
-                 />
-              </div>
-           </div>
-        )}
+                 <div className="grid grid-cols-12 gap-8 items-start">
+                    <section className="col-span-5 space-y-4 sticky top-24">
+                       <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Quick Entry</h2>
+                       <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                          <TransactionForm
+                             onSubmit={handleFormSubmit}
+                             isLoading={loading}
+                             initialData={editingTransaction}
+                             availableCategories={categories}
+                          />
+                       </div>
+                    </section>
 
-        {currentView === 'add' && (
-           <div className="max-w-xl mx-auto animate-in zoom-in-95 duration-300">
-              <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                 <div className="p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 backdrop-blur-sm">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">
-                       {editingTransaction ? 'Edit Transaction' : 'New Transaction'}
-                    </h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                       {editingTransaction ? 'Update the details below' : 'Record a new expense or income'}
-                    </p>
+                    <section className="col-span-7 space-y-4">
+                       <div className="flex items-center justify-between">
+                          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Activity History</h2>
+                          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shadow-inner">
+                             <button
+                                onClick={() => setListViewType('expense')}
+                                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                                   listViewType === 'expense' 
+                                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                                   : 'text-slate-500 dark:text-slate-400'
+                                }`}
+                             >
+                                Expenses
+                             </button>
+                             <button
+                                onClick={() => setListViewType('income')}
+                                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                                   listViewType === 'income' 
+                                   ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' 
+                                   : 'text-slate-500 dark:text-slate-400'
+                                }`}
+                             >
+                                Income
+                             </button>
+                          </div>
+                       </div>
+                       <TransactionList
+                          transactions={filteredTransactions}
+                          onEdit={handleEdit}
+                          onDelete={handleDelete}
+                          isLoading={loading}
+                          error={error}
+                          type={listViewType}
+                       />
+                    </section>
                  </div>
-                 <TransactionForm
-                    onSubmit={handleFormSubmit}
-                    isLoading={loading}
-                    initialData={editingTransaction}
-                    availableCategories={categories}
-                 />
+              </div>
+
+              {/* Mobile Layout: Tabbed */}
+              <div className="md:hidden space-y-6">
+                 {transactionSubView === 'overview' && (
+                    <div className="space-y-6">
+                       <h2 className="text-2xl font-bold text-slate-900 dark:text-white px-1">Period Summary</h2>
+                       <SummaryDashboard transactions={transactions} loading={loading} error={error} />
+                    </div>
+                 )}
+
+                 {transactionSubView === 'add' && (
+                    <div className="max-w-3xl mx-auto">
+                       <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                          <div className="p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+                             <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                                {editingTransaction ? 'Edit Transaction' : 'New Entry'}
+                             </h2>
+                          </div>
+                          <TransactionForm
+                             onSubmit={handleFormSubmit}
+                             isLoading={loading}
+                             initialData={editingTransaction}
+                             availableCategories={categories}
+                          />
+                       </div>
+                    </div>
+                 )}
+
+                 {transactionSubView === 'history' && (
+                    <div className="space-y-4">
+                       <div className="flex items-center justify-between">
+                          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Activity History</h2>
+                          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shadow-inner">
+                             <button
+                                onClick={() => setListViewType('expense')}
+                                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                                   listViewType === 'expense' 
+                                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                                   : 'text-slate-500 dark:text-slate-400'
+                                }`}
+                             >
+                                Expenses
+                             </button>
+                             <button
+                                onClick={() => setListViewType('income')}
+                                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                                   listViewType === 'income' 
+                                   ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' 
+                                   : 'text-slate-500 dark:text-slate-400'
+                                }`}
+                             >
+                                Income
+                             </button>
+                          </div>
+                       </div>
+
+                       <TransactionList
+                          transactions={filteredTransactions}
+                          onEdit={(t) => {
+                             handleEdit(t);
+                             setTransactionSubView('add');
+                          }}
+                          onDelete={handleDelete}
+                          isLoading={loading}
+                          error={error}
+                          type={listViewType}
+                       />
+                    </div>
+                 )}
               </div>
            </div>
         )}
 
         {currentView === 'account' && (
            <AccountView />
+        )}
+
+        {currentView === 'settings' && (
+           <CategoryManager 
+              categories={categories} 
+              onAdd={handleAddCategory} 
+              onDelete={handleDeleteCategory}
+              isLoading={loading}
+           />
         )}
     </Layout>
   );
