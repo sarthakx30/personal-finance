@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/ui_updates
 
 permissions:
   contents: write
