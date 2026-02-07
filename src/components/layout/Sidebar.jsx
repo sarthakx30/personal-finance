@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Wallet, List, PlusCircle, X } from 'lucide-react';
+import { LayoutDashboard, Wallet, List, PlusCircle, X, FileText } from 'lucide-react';
 
 export default function Sidebar({ currentView, onViewChange, isOpen, onClose }) {
   const budgetItems = [
@@ -9,7 +9,8 @@ export default function Sidebar({ currentView, onViewChange, isOpen, onClose }) 
   ];
 
   const assetItems = [
-    { id: 'net-worth', label: 'Net Worth', icon: Wallet, disabled: true },
+    { id: 'net-worth', label: 'Net Worth', icon: Wallet },
+    { id: 'loans', label: 'Loans', icon: FileText },
   ];
 
   const handleItemClick = (id) => {
@@ -43,38 +44,54 @@ export default function Sidebar({ currentView, onViewChange, isOpen, onClose }) 
         </div>
 
         <nav className="flex-1 px-4 space-y-6 overflow-y-auto min-h-0">
-          {/* Monthly Budget Section - Desktop Only */}
-          <div className="space-y-1 hidden md:block">
-            <div className="px-4 py-2">
-                <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                    Monthly Budget
-                </h3>
-            </div>
-            {budgetItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleItemClick(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
-                  ${
-                    currentView === item.id
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
-                  }
-                `}
-              >
-                <item.icon className="w-5 h-5" />
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Assets Section */}
+          {/* Monthly Budget Section */}
           <div className="space-y-1">
             <div className="px-4 py-2">
                 <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                    Assets
+                    Menu
                 </h3>
             </div>
+            
+            {/* Desktop: Show granular items. Mobile: Show single 'Monthly Tracker' item */}
+            <div className="hidden md:block space-y-1">
+              {budgetItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleItemClick(item.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                    ${
+                      currentView === item.id
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
+                    }
+                  `}
+                >
+                  <item.icon className="w-5 h-5" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile Only Item */}
+            <div className="md:hidden space-y-1">
+               <button
+                  onClick={() => handleItemClick('dashboard')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                    ${
+                      ['dashboard', 'transactions', 'add'].includes(currentView)
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
+                    }
+                  `}
+                >
+                  <LayoutDashboard className="w-5 h-5" />
+                  Monthly Tracker
+                </button>
+            </div>
+          </div>
+
+          {/* Assets Section - Desktop & Mobile */}
+          <div className="space-y-1">
             {assetItems.map((item) => (
               <button
                 key={item.id}

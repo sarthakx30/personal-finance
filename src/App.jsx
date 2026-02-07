@@ -7,6 +7,8 @@ import TransactionList from './components/transactions/TransactionList';
 import SummaryDashboard from './components/dashboard/SummaryDashboard';
 import AuthButton from './components/auth/AuthButton';
 import AccountView from './components/auth/AccountView';
+import NetWorthDashboard from './components/networth/NetWorthDashboard';
+import LoanDashboard from './components/networth/LoanDashboard';
 import Layout from './components/layout/Layout';
 import { useGoogleAuth } from './hooks/useGoogleAuth';
 import { useGoogleSheets } from './hooks/useGoogleSheets';
@@ -130,8 +132,8 @@ function AppContent() {
 
   return (
     <Layout currentView={currentView} onViewChange={setCurrentView} isSignedIn={isSignedIn}>
-        {/* Global Sheet Selector - Hide on account page */}
-        {currentView !== 'account' && (
+        {/* Global Sheet Selector - Hide on account page and net worth/loans page */}
+        {currentView !== 'account' && currentView !== 'net-worth' && currentView !== 'loans' && (
           <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
              <section className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-md border border-slate-200 dark:border-slate-700">
                 <div className="mb-2">
@@ -151,6 +153,18 @@ function AppContent() {
                     <p className="text-slate-500 dark:text-slate-400">Select a sheet to view your dashboard</p>
                  </div>
               )}
+           </div>
+        )}
+
+        {currentView === 'net-worth' && (
+           <div className="animate-in fade-in duration-500">
+              <NetWorthDashboard />
+           </div>
+        )}
+
+        {currentView === 'loans' && (
+           <div className="animate-in fade-in duration-500">
+              <LoanDashboard />
            </div>
         )}
 

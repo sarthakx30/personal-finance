@@ -19,7 +19,19 @@ This application provides a modern, responsive interface to manage your finances
 - **Storage/API:** Google Sheets API, Google Drive API, Google Identity Services
 
 ## 📋 Versioning
-### **v0.50 (Current)**
+### **v0.70**
+- **Sidebar Layout:** New responsive sidebar navigation with mobile drawer support.
+- **Bucket Editor:** Drag-and-drop interface (Desktop) and list view (Mobile) to organize categories into budget buckets. Configuration is saved to Google Drive.
+- **Profile Management:** Dedicated account page with profile picture and centralized sign-out.
+- **Notifications:** Integrated toast notification system for success/error feedback.
+- **Permissions:** Enhanced Google Drive integration to support saving app configuration.
+
+### **v0.65**
+- **Education Loan Tracker:** Dedicated dashboard for tracking loan repayment progress with charts for outstanding balance and payment history.
+- **Loan Entry Management:** Features to add new repayment entries and edit historical records, with automatic balance recalculation logic.
+- **Mobile Experience:** Optimized navigation for specialized trackers (Net Worth, Loans) by hiding the bottom bar for a focused view.
+
+### **v0.60**
 - **Dynamic Categories:** Application now fetches expense and income categories directly from the Google Sheet's "Summary" tab and transaction history, ensuring 100% synchronization with your budget template.
 - **Smart Bucket Editor:** The bucket configuration tool now intelligently filters to show only the categories present in the currently selected month, reducing clutter.
 - **Privacy Enhanced:** Removed all hardcoded category lists and personal references from the source code.

@@ -491,3 +491,256 @@ export const getSummary = async (spreadsheetId) => {
   summary.savings = summary.totalIncome - summary.totalExpenses;
   return summary;
 };
+
+/**
+ * Find the Net Worth Tracker spreadsheet
+ */
+export const findNetWorthFile = async () => {
+  const accessToken = getAccessToken();
+  if (!accessToken) throw new Error('Not authenticated');
+
+  const params = new URLSearchParams({
+    q: "name = 'Net Worth Tracker' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false",
+    spaces: 'drive',
+    fields: 'files(id, name, modifiedTime)',
+  });
+
+  const res = await fetch(`${DRIVE_API}?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!res.ok) throw new Error('Failed to find Net Worth Tracker');
+  const data = await res.json();
+  // Return the first match, or null
+  return data.files && data.files.length > 0 ? data.files[0] : null;
+};
+
+/**
+ * Get data from the "Net Worth" tab
+ * Columns:
+ * A: Month
+ * B: Savings A/C
+ * C: Stocks
+ * D: Mutual Funds
+ * E: PPF
+ * F: Total Assets
+ * G: Total Liabilities
+ * H: Net Worth
+ * I: Comment
+ */
+export const getNetWorthData = async (spreadsheetId) => {
+  const accessToken = getAccessToken();
+  if (!accessToken) throw new Error('Not authenticated');
+
+  const res = await fetch(`${SHEETS_API}/${spreadsheetId}/values/'Net Worth'!A2:I?valueRenderOption=UNFORMATTED_VALUE`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!res.ok) throw new Error('Failed to get Net Worth data');
+  const data = await res.json();
+  const values = data.values || [];
+
+  const allEntries = values.map((row) => {
+    // Parse Date
+    let dateStr = '';
+    if (typeof row[0] === 'number') {
+      dateStr = serialDateToISO(row[0]);
+    } else {
+      dateStr = row[0] || '';
+    }
+
+    // Helper to safely parse numbers
+    const getNum = (val) => Number(val) || 0;
+
+    return {
+      date: dateStr,
+      savings: getNum(row[1]),
+      stocks: getNum(row[2]),
+      mutualFunds: getNum(row[3]),
+      ppf: getNum(row[4]),
+      totalAssets: getNum(row[5]),
+      totalLiabilities: getNum(row[6]),
+      netWorth: getNum(row[7]),
+      comment: (row[8] || '').toString(),
+    };
+  });
+
+  // Find the index of the last row where Savings A/C (column B / index 1) is not empty/zero
+  // This "locks in" the current month and ignores future placeholder rows
+  let lastValidIndex = -1;
+  for (let i = allEntries.length - 1; i >= 0; i--) {
+    if (allEntries[i].savings !== 0 && allEntries[i].date) {
+      lastValidIndex = i;
+      break;
+    }
+  }
+
+  // If no valid entries found, return empty
+  if (lastValidIndex === -1) return [];
+
+  // Return only data up to that row
+  return allEntries.slice(0, lastValidIndex + 1);
+};
+
+/**
+ * Add (Update) the next available loan entry
+ * Scans for the first row where 'Paid' and 'Interest' are empty,
+ * and updates it with the provided values.
+ */
+export const addLoanEntry = async (spreadsheetId, transaction) => {
+  const accessToken = getAccessToken();
+  if (!accessToken) throw new Error('Not authenticated');
+
+  // 1. Find the next empty row in columns C (Paid) and D (Interest)
+  // Fetching C2:D to skip header
+  const checkRes = await fetch(`${SHEETS_API}/${spreadsheetId}/values/'Loan'!C2:D`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  
+  if (!checkRes.ok) throw new Error('Failed to find next loan slot');
+  const checkData = await checkRes.json();
+  const rows = checkData.values || [];
+  
+  // Find first row where Paid (0) and Interest (1) are empty/undefined/0
+  let nextRowIndex = -1;
+  for (let i = 0; i < rows.length; i++) {
+    const paid = rows[i][0];
+    const interest = rows[i][1];
+    // Check if empty or explicitly 0 (assuming pre-filled 0s means filled, but usually blank means empty)
+    // In our previous logic, we considered 0 as valid data.
+    // So we look for "falsy" or empty string. 
+    // Actually, if the sheet is a template, it might be blank.
+    if (!paid && !interest) {
+      nextRowIndex = i;
+      break;
+    }
+  }
+  
+  // If no empty row found in the fetched range, assume it's the next one after the last fetched row
+  if (nextRowIndex === -1) {
+    nextRowIndex = rows.length;
+  }
+
+  // Calculate actual sheet row number (Index + 2 because we started at C2)
+  const sheetRow = nextRowIndex + 2;
+
+  const values = [
+    transaction.paid,
+    transaction.interest,
+    transaction.balance
+  ];
+
+  const res = await fetch(`${SHEETS_API}/${spreadsheetId}/values/'Loan'!C${sheetRow}:E${sheetRow}?valueInputOption=USER_ENTERED`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      range: `'Loan'!C${sheetRow}:E${sheetRow}`,
+      majorDimension: 'ROWS',
+      values: [values],
+    }),
+  });
+
+  if (!res.ok) throw new Error('Failed to add loan entry');
+  return await res.json();
+};
+
+/**
+ * Update an existing loan entry
+ */
+export const updateLoanEntry = async (spreadsheetId, rowIndex, transaction) => {
+  const accessToken = getAccessToken();
+  if (!accessToken) throw new Error('Not authenticated');
+
+  // Calculate actual sheet row number (rowIndex is 0-based from the data array which starts at row 2)
+  const sheetRow = rowIndex + 2;
+
+  const values = [
+    transaction.paid,
+    transaction.interest,
+    transaction.balance
+  ];
+
+  const res = await fetch(`${SHEETS_API}/${spreadsheetId}/values/'Loan'!C${sheetRow}:E${sheetRow}?valueInputOption=USER_ENTERED`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      range: `'Loan'!C${sheetRow}:E${sheetRow}`,
+      majorDimension: 'ROWS',
+      values: [values],
+    }),
+  });
+
+  if (!res.ok) throw new Error('Failed to update loan entry');
+  return await res.json();
+};
+
+/**
+ * Get data from the "Loan" tab
+ * Columns:
+ * A: Year
+ * B: Month
+ * C: Paid
+ * D: Interest
+ * E: Balance
+ */
+export const getLoanData = async (spreadsheetId) => {
+  const accessToken = getAccessToken();
+  if (!accessToken) throw new Error('Not authenticated');
+
+  const res = await fetch(`${SHEETS_API}/${spreadsheetId}/values/'Loan'!A2:E?valueRenderOption=UNFORMATTED_VALUE`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!res.ok) throw new Error('Failed to get Loan data');
+  const data = await res.json();
+  const values = data.values || [];
+
+  const allEntries = values.map((row) => {
+    const year = row[0];
+    const month = row[1];
+    
+    // Construct date from Year + Month (e.g., 2025 + "April")
+    let dateStr = '';
+    if (year && month) {
+       const monthIndex = new Date(`${month} 1, 2000`).getMonth(); // Parse month name
+       if (!isNaN(monthIndex)) {
+          // Create date using local time to avoid timezone shifts
+          const d = new Date(year, monthIndex, 1);
+          // Format as YYYY-MM-DD
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          dateStr = `${y}-${m}-${day}`;
+       }
+    }
+
+    const getNum = (val) => Number(val) || 0;
+
+    return {
+      date: dateStr,
+      year,
+      month,
+      paid: getNum(row[2]),
+      interest: getNum(row[3]),
+      balance: getNum(row[4]),
+    };
+  });
+
+  // Filter out entries with no paid amount AND no interest (future empty rows)
+  let lastValidIndex = -1;
+  for (let i = allEntries.length - 1; i >= 0; i--) {
+    if (allEntries[i].paid !== 0 || allEntries[i].interest !== 0) {
+      lastValidIndex = i;
+      break;
+    }
+  }
+
+  if (lastValidIndex === -1) return [];
+  return allEntries.slice(0, lastValidIndex + 1);
+};
