@@ -19,21 +19,21 @@ This application provides a modern, responsive interface to manage your finances
 - **Storage/API:** Google Sheets API, Google Drive API, Google Identity Services
 
 ## 📋 Versioning
-### **v0.75 (Current)**
+### **v0.50 (Current)**
 - **Dynamic Categories:** Application now fetches expense and income categories directly from the Google Sheet's "Summary" tab and transaction history, ensuring 100% synchronization with your budget template.
 - **Smart Bucket Editor:** The bucket configuration tool now intelligently filters to show only the categories present in the currently selected month, reducing clutter.
 - **Privacy Enhanced:** Removed all hardcoded category lists and personal references from the source code.
 - **Data Integrity:** Fixed date parsing logic to correctly handle Google Sheets serial dates and raw unformatted values.
 - **UI Polish:** Improved transaction history visibility with red/green color coding for expenses/income and chronological sorting.
 
-### **v0.70**
+### **v0.40**
 - **Sidebar Layout:** New responsive sidebar navigation with mobile drawer support.
 - **Bucket Editor:** Drag-and-drop interface (Desktop) and list view (Mobile) to organize categories into budget buckets. Configuration is saved to Google Drive.
 - **Profile Management:** Dedicated account page with profile picture and centralized sign-out.
 - **Notifications:** Integrated toast notification system for success/error feedback.
 - **Permissions:** Enhanced Google Drive integration to support saving app configuration.
 
-### **v0.60**
+### **v0.25**
 - **UI/UX Overhaul:** Refined visual theme with high-contrast light mode, sharper cards, and consistent blue brand styling.
 - **New Brand Identity:** Custom-designed logo integrated into the app header, favicon, and sign-in screen.
 - **Improved Navigation:** Global Sheet Selector accessible from all views.
