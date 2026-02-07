@@ -18,6 +18,7 @@ STATUS.txt
 # Dependencies & Build
 node_modules/
 dist/
+.vite/
 build/
 coverage/
 
