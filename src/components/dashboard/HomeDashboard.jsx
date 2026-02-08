@@ -34,13 +34,22 @@ export default function HomeDashboard({
       .slice(0, 4);
   }, [transactions]);
 
-  // 3. Current Net Worth
-  const totalNetWorth = useMemo(() => {
-    return netWorthData.assets.reduce((acc, asset) => {
+  // 3. Current Net Worth Breakdown
+  const netWorthStats = useMemo(() => {
+    const totals = netWorthData.assets.reduce((acc, asset) => {
       const assetLogs = netWorthData.logs.filter(l => l.asset_id === asset.id).sort((a,b) => new Date(b.date) - new Date(a.date));
       const balance = assetLogs[0]?.balance || 0;
-      return acc + (asset.type === 'ASSET' ? Number(balance) : -Number(balance));
-    }, 0);
+      
+      if (asset.type === 'ASSET') acc.assets += Number(balance);
+      else acc.liabilities += Number(balance);
+      
+      return acc;
+    }, { assets: 0, liabilities: 0 });
+
+    return {
+      ...totals,
+      netWorth: totals.assets - totals.liabilities
+    };
   }, [netWorthData]);
 
   if (loading) return <div className="p-8 text-center animate-pulse text-slate-400">Loading your dashboard...</div>;
@@ -64,18 +73,18 @@ export default function HomeDashboard({
                     <span className="text-xs font-bold uppercase tracking-[0.2em]">Total Net Worth</span>
                  </div>
                  <h2 className="text-5xl font-black tracking-tighter mb-6">
-                    {formatCurrencyINR(totalNetWorth)}
+                    {formatCurrencyINR(netWorthStats.netWorth)}
                  </h2>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/5">
-                    <p className="text-[10px] font-bold uppercase opacity-60 mb-1">Income</p>
-                    <p className="text-xl font-bold text-emerald-400">{formatCurrencyINR(stats.income)}</p>
+                    <p className="text-[10px] font-bold uppercase opacity-60 mb-1">Total Assets</p>
+                    <p className="text-xl font-bold text-emerald-400">{formatCurrencyINR(netWorthStats.assets)}</p>
                  </div>
                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/5">
-                    <p className="text-[10px] font-bold uppercase opacity-60 mb-1">Expenses</p>
-                    <p className="text-xl font-bold text-red-400">{formatCurrencyINR(stats.expense)}</p>
+                    <p className="text-[10px] font-bold uppercase opacity-60 mb-1">Total Liabilities</p>
+                    <p className="text-xl font-bold text-red-400">{formatCurrencyINR(netWorthStats.liabilities)}</p>
                  </div>
               </div>
            </div>

@@ -14,11 +14,9 @@ import { useAssets } from './hooks/useAssets';
 import CategoryManager from './components/settings/CategoryManager';
 import * as categoryService from './services/categoryService';
 import { ThemeProvider } from './context/ThemeContext';
-import { ConfigProvider } from './context/ConfigContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { ConfirmProvider, useConfirm } from './context/ConfirmContext';
 
-import DashboardLayout from './components/dashboard/DashboardLayout';
 import HomeDashboard from './components/dashboard/HomeDashboard';
 import TransactionOverviewCharts from './components/transactions/TransactionOverviewCharts';
 
@@ -370,9 +368,7 @@ function App() {
       <ThemeProvider>
          <ToastProvider>
             <ConfirmProvider>
-               <ConfigProvider>
-                  <AppContent />
-               </ConfigProvider>
+               <AppContent />
             </ConfirmProvider>
          </ToastProvider>
       </ThemeProvider>
