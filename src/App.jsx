@@ -15,11 +15,16 @@ import CategoryManager from './components/settings/CategoryManager';
 import * as categoryService from './services/categoryService';
 import { ThemeProvider } from './context/ThemeContext';
 import { ConfigProvider } from './context/ConfigContext';
-import { ToastProvider } from './context/ToastContext';
+import { ToastProvider, useToast } from './context/ToastContext';
+import { ConfirmProvider, useConfirm } from './context/ConfirmContext';
 
 import DashboardLayout from './components/dashboard/DashboardLayout';
+import HomeDashboard from './components/dashboard/HomeDashboard';
+import TransactionOverviewCharts from './components/transactions/TransactionOverviewCharts';
 
 function AppContent() {
+  const confirm = useConfirm();
+  const toast = useToast();
   const { isSignedIn, loading: authLoading } = useGoogleAuth();
   
   // Global Date Filter State (Default: This Month)
@@ -53,6 +58,7 @@ function AppContent() {
     assets,
     logs,
     loading: assetsLoading,
+    refresh: refreshAssets,
     addAsset,
     addLog,
     deleteAsset,
@@ -67,29 +73,48 @@ function AppContent() {
   const filteredTransactions = transactions.filter(t => t.type === listViewType);
 
   const handleFormSubmit = async (formData) => {
+    // Pick only the columns that exist in the DB table to avoid Supabase errors 
+    // with joined metadata objects (categories, source_account, etc)
+    const payload = {
+      date: formData.date,
+      amount: formData.amount,
+      description: formData.description,
+      category_id: formData.category_id || null,
+      type: formData.type,
+      account_id: formData.account_id || null,
+      destination_account_id: formData.destination_account_id || null,
+      is_transfer: !!formData.is_transfer
+    };
+
     try {
       if (editingTransaction) {
-        await updateTransaction(editingTransaction.id, formData);
+        await updateTransaction(editingTransaction.id, payload);
+        toast.success('Transaction updated.');
         setEditingTransaction(null);
-        setCurrentView('transactions');
+        setTransactionSubView('history'); // Go back to list after edit
       } else {
-        await addTransaction(formData);
-        setCurrentView('transactions');
+        await addTransaction(payload);
+        toast.success('Transaction recorded.');
+        setTransactionSubView('history');
         setListViewType(formData.type || 'expense');
       }
+      // Trigger asset refresh because DB trigger updated balances
+      await refreshAssets();
     } catch (err) {
       console.error('Failed to save transaction:', err);
+      toast.error('Failed to save transaction.');
     }
   };
 
   const handleEdit = (transaction) => {
     setEditingTransaction(transaction);
-    setCurrentView('add');
+    setTransactionSubView('add');
   };
 
   const handleDelete = async (id) => {
     try {
       await deleteTransaction(id);
+      await refreshAssets(); // Refresh assets to reflect balance change
     } catch (err) {
       console.error('Failed to delete:', err);
     }
@@ -101,15 +126,21 @@ function AppContent() {
   };
 
   const handleDeleteCategory = async (id) => {
-    if (window.confirm('Are you sure? Transactions using this category will show as Uncategorized.')) {
+    const isConfirmed = await confirm({
+      title: 'Delete Category?',
+      message: 'Are you sure? Transactions using this category will show as Uncategorized.',
+      type: 'warning'
+    });
+
+    if (isConfirmed) {
       await categoryService.deleteCategory(id);
       await refreshTransactions();
     }
   };
 
-  // Reset edit state when leaving add view
+  // Reset edit state when leaving transactions view
   useEffect(() => {
-    if (currentView !== 'add') {
+    if (currentView !== 'transactions') {
       setEditingTransaction(null);
     }
   }, [currentView]);
@@ -159,12 +190,10 @@ function AppContent() {
       onDateChange={handleDateChange}
     >
         {currentView === 'dashboard' && (
-           <DashboardLayout 
+           <HomeDashboard 
               transactions={transactions}
               loading={loading}
               error={error}
-              dateFilter={dateFilter}
-              onDateChange={handleDateChange}
               netWorthData={{ assets, logs }}
               onViewChange={setCurrentView}
            />
@@ -187,9 +216,10 @@ function AppContent() {
            <div className="animate-in fade-in duration-500">
               {/* Desktop Layout: All-in-one */}
               <div className="hidden md:flex flex-col gap-8">
-                 <section className="space-y-4">
+                 <section className="space-y-6">
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Period Summary</h2>
                     <SummaryDashboard transactions={transactions} loading={loading} error={error} />
+                    <TransactionOverviewCharts transactions={transactions} />
                  </section>
 
                  <div className="grid grid-cols-12 gap-8 items-start">
@@ -201,6 +231,7 @@ function AppContent() {
                              isLoading={loading}
                              initialData={editingTransaction}
                              availableCategories={categories}
+                             availableAssets={assets}
                           />
                        </div>
                     </section>
@@ -246,9 +277,10 @@ function AppContent() {
               {/* Mobile Layout: Tabbed */}
               <div className="md:hidden space-y-6">
                  {transactionSubView === 'overview' && (
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white px-1">Period Summary</h2>
                        <SummaryDashboard transactions={transactions} loading={loading} error={error} />
+                       <TransactionOverviewCharts transactions={transactions} />
                     </div>
                  )}
 
@@ -265,6 +297,7 @@ function AppContent() {
                              isLoading={loading}
                              initialData={editingTransaction}
                              availableCategories={categories}
+                             availableAssets={assets}
                           />
                        </div>
                     </div>
@@ -325,6 +358,7 @@ function AppContent() {
               onAdd={handleAddCategory} 
               onDelete={handleDeleteCategory}
               isLoading={loading}
+              onRefresh={refreshTransactions}
            />
         )}
     </Layout>
@@ -335,9 +369,11 @@ function App() {
    return (
       <ThemeProvider>
          <ToastProvider>
-            <ConfigProvider>
-               <AppContent />
-            </ConfigProvider>
+            <ConfirmProvider>
+               <ConfigProvider>
+                  <AppContent />
+               </ConfigProvider>
+            </ConfirmProvider>
          </ToastProvider>
       </ThemeProvider>
    )

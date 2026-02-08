@@ -57,14 +57,14 @@ export default function DateRangeFilter({ startDate, endDate, onChange }) {
             type="date" 
             value={startDate} 
             onChange={(e) => onChange(e.target.value, endDate)}
-            className="flex-1 sm:flex-none bg-slate-50 dark:bg-slate-900 border-none text-[11px] sm:text-xs font-medium text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500/20 text-center"
+            className="flex-1 sm:flex-none bg-slate-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 text-[11px] sm:text-xs font-bold text-slate-900 dark:text-white rounded-lg px-2 py-1.5 focus:ring-4 focus:ring-blue-500/10 transition-all text-center outline-none"
          />
-         <span className="text-slate-300 dark:text-slate-600">-</span>
+         <span className="text-slate-300 dark:text-slate-600 font-bold">-</span>
          <input 
             type="date" 
             value={endDate} 
             onChange={(e) => onChange(startDate, e.target.value)}
-            className="flex-1 sm:flex-none bg-slate-50 dark:bg-slate-900 border-none text-[11px] sm:text-xs font-medium text-slate-700 dark:text-slate-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500/20 text-center"
+            className="flex-1 sm:flex-none bg-slate-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 text-[11px] sm:text-xs font-bold text-slate-900 dark:text-white rounded-lg px-2 py-1.5 focus:ring-4 focus:ring-blue-500/10 transition-all text-center outline-none"
          />
       </div>
     </div>

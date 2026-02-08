@@ -57,7 +57,7 @@ export default function Layout({
             {/* Right: Date Filter & Actions */}
             <div className="flex items-center gap-3">
               {/* Desktop Date Filter */}
-              {isSignedIn && (
+              {isSignedIn && ['dashboard', 'transactions', 'net-worth'].includes(currentView) && (
                  <div className="hidden md:block">
                     <DateRangeFilter 
                        startDate={dateFilter.start} 
@@ -96,7 +96,7 @@ export default function Layout({
           </div>
           
           {/* Mobile Date Filter (Sub-header) */}
-          {isSignedIn && (
+          {isSignedIn && ['dashboard', 'transactions', 'net-worth'].includes(currentView) && (
              <div className="md:hidden px-4 pb-3 border-t border-slate-100 dark:border-slate-800 pt-3 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
                 <DateRangeFilter 
                    startDate={dateFilter.start} 

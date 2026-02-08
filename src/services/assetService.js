@@ -53,10 +53,12 @@ export const getAllAssetLogs = async () => {
       *,
       assets (
         name,
-        type
+        type,
+        tags
       )
     `)
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
   return data;

@@ -12,17 +12,18 @@ export const getTransactions = async (startDate, endDate) => {
         name,
         type,
         bucket
+      ),
+      source_account:assets!transactions_account_id_fkey (
+        name
+      ),
+      destination_account:assets!transactions_destination_account_id_fkey (
+        name
       )
     `)
     .order('date', { ascending: false });
 
-  if (startDate) {
-    query = query.gte('date', startDate);
-  }
-  
-  if (endDate) {
-    query = query.lte('date', endDate);
-  }
+  if (startDate) query = query.gte('date', startDate);
+  if (endDate) query = query.lte('date', endDate);
 
   const { data, error } = await query;
 

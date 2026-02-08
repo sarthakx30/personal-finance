@@ -60,3 +60,40 @@ export const deleteCategory = async (id) => {
   if (error) throw error;
   return true;
 };
+
+/**
+ * Bulk add categories (for seeding defaults)
+ */
+export const bulkAddCategories = async (categories) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const categoriesWithUser = categories.map(cat => ({
+    ...cat,
+    user_id: user.id
+  }));
+
+  const { data, error } = await supabase
+    .from('categories')
+    .insert(categoriesWithUser)
+    .select();
+
+  if (error) throw error;
+  return data;
+};
+
+/**
+ * Delete all categories for the current user
+ */
+export const deleteAllCategories = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const { error } = await supabase
+    .from('categories')
+    .delete()
+    .eq('user_id', user.id);
+
+  if (error) throw error;
+  return true;
+};
