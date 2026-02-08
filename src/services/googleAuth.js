@@ -6,15 +6,18 @@ let listeners = [];
 
 // Initialize Google Auth on mount
 export const initializeGoogleAuth = async () => {
+  console.log('Initializing Supabase Auth...');
+
   // Listen for auth state changes
   supabase.auth.onAuthStateChange((event, session) => {
+    console.log('Auth State Change Event:', event);
+    
     if (session) {
-      // Supabase only provides provider_token on initial sign-in/session events
+      // Capture the Google provider token if available
       if (session.provider_token) {
         accessToken = session.provider_token;
         localStorage.setItem('google_access_token', accessToken);
       } else {
-        // Try to recover from localStorage if it's a refresh
         accessToken = localStorage.getItem('google_access_token');
       }
 
@@ -25,6 +28,12 @@ export const initializeGoogleAuth = async () => {
         picture: session.user.user_metadata?.avatar_url,
         id: session.user.id
       };
+      
+      // Clean up the URL hash if it contains auth data
+      if (window.location.hash && window.location.hash.includes('access_token')) {
+        window.history.replaceState(null, null, window.location.pathname);
+      }
+
       listeners.forEach((cb) => cb(true));
     } else {
       accessToken = null;
@@ -34,17 +43,26 @@ export const initializeGoogleAuth = async () => {
     }
   });
 
-  // Initial check
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    accessToken = session.provider_token || localStorage.getItem('google_access_token');
-    currentUser = {
-      access_token: accessToken,
-      email: session.user.email,
-      name: session.user.user_metadata?.full_name,
-      picture: session.user.user_metadata?.avatar_url,
-      id: session.user.id
-    };
+  // Initial session check
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    
+    if (session) {
+      console.log('Initial session found');
+      accessToken = session.provider_token || localStorage.getItem('google_access_token');
+      currentUser = {
+        access_token: accessToken,
+        email: session.user.email,
+        name: session.user.user_metadata?.full_name,
+        picture: session.user.user_metadata?.avatar_url,
+        id: session.user.id
+      };
+    } else {
+      console.log('No initial session found');
+    }
+  } catch (err) {
+    console.error('Error getting session:', err);
   }
   
   return true;
@@ -53,6 +71,13 @@ export const initializeGoogleAuth = async () => {
 export const loadGoogleIdentityScript = () => Promise.resolve();
 
 export const signInWithGoogle = async () => {
+  // Construct the redirect URL carefully
+  // origin + BASE_URL ensures it works on both localhost and GitHub Pages
+  const baseUrl = import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL;
+  const redirectTo = window.location.origin + baseUrl;
+  
+  console.log('Signing in with Google, redirecting to:', redirectTo);
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -60,7 +85,7 @@ export const signInWithGoogle = async () => {
         access_type: 'offline',
         prompt: 'consent',
       },
-      redirectTo: window.location.origin,
+      redirectTo,
       scopes: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file'
     }
   });
