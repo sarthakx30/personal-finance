@@ -19,6 +19,20 @@ This application provides a modern, responsive interface to manage your finances
 - **Storage/API:** Google Sheets API, Google Drive API, Google Identity Services
 
 ## 📋 Versioning
+### **v0.90-BETA RELEASE**
+- **Double-Entry Transfers:** Support for account-to-account transfers (e.g., Bank to Savings) without affecting net income/expense.
+- **Automated Balance Sync:** Implemented robust database triggers to automatically update account balances on every transaction (Add/Edit/Delete).
+- **Custom Dialog System:** Replaced all native browser alerts/confirms with bespoke, design-consistent modal dialogs.
+- **Enhanced Visualizations:** Advanced "Wealth Journey" chart with dotted tracking for Assets and Liabilities and interactive tooltips.
+- **Responsive Navigation:** Context-aware mobile bottom bar for Transactions and an expandable mobile date filter.
+- **Global Search:** Instant, client-side search across all transaction fields (Description, Category, Account).
+- **Infrastructure Cleanup:** Completely removed legacy Google Sheets/Drive logic and dependencies for a lean, Supabase-native experience.
+
+### **v0.80**
+- **Supabase Migration:** Initial transition from Google Sheets to Supabase backend.
+- **Holistic Dashboard:** New Home screen with unified Cash Flow and Net Worth snapshots.
+- **UI/UX Overhaul:** Modernized design system with `rounded-3xl` geometry and optimized responsive layouts.
+
 ### **v0.70**
 - **Sidebar Layout:** New responsive sidebar navigation with mobile drawer support.
 - **Bucket Editor:** Drag-and-drop interface (Desktop) and list view (Mobile) to organize categories into budget buckets. Configuration is saved to Google Drive.
