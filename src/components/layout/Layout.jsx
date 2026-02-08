@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, List, PlusCircle, LogOut, Menu, User, Wallet } from 'lucide-react';
+import { LayoutDashboard, List, PlusCircle, LogOut, Menu, User, Wallet, Calendar } from 'lucide-react';
 import AuthButton from '../auth/AuthButton';
 import ThemeToggle from '../common/ThemeToggle';
 import Sidebar from './Sidebar';
@@ -18,6 +18,7 @@ export default function Layout({
   onDateChange
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileDateFilterOpen, setIsMobileDateFilterOpen] = useState(false);
   const { user } = useGoogleAuth();
 
   return (
@@ -67,6 +68,20 @@ export default function Layout({
                  </div>
               )}
 
+              {/* Mobile Date Filter Toggle */}
+              {isSignedIn && ['dashboard', 'transactions', 'net-worth'].includes(currentView) && (
+                 <button
+                    onClick={() => setIsMobileDateFilterOpen(!isMobileDateFilterOpen)}
+                    className={`md:hidden p-2 rounded-xl transition-all duration-200 ${
+                       isMobileDateFilterOpen 
+                       ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
+                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                 >
+                    <Calendar className="w-5 h-5" />
+                 </button>
+              )}
+
               <ThemeToggle />
               
               {isSignedIn && (
@@ -95,9 +110,9 @@ export default function Layout({
             </div>
           </div>
           
-          {/* Mobile Date Filter (Sub-header) */}
-          {isSignedIn && ['dashboard', 'transactions', 'net-worth'].includes(currentView) && (
-             <div className="md:hidden px-4 pb-3 border-t border-slate-100 dark:border-slate-800 pt-3 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+          {/* Mobile Date Filter (Expandable Sub-header) */}
+          {isSignedIn && ['dashboard', 'transactions', 'net-worth'].includes(currentView) && isMobileDateFilterOpen && (
+             <div className="md:hidden px-4 pb-3 border-t border-slate-100 dark:border-slate-800 pt-3 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md animate-in slide-in-from-top duration-300">
                 <DateRangeFilter 
                    startDate={dateFilter.start} 
                    endDate={dateFilter.end} 
